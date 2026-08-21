@@ -83,8 +83,9 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
     }
 
     /// Copy the selected row and paste it into the app that was frontmost.
-    /// `openFullWindow` (⌘⏎) just opens the main window instead.
-    func confirmSelection(openFullWindow: Bool = false) {
+    /// `openFullWindow` (⌘⏎) just opens the main window instead; `plainText`
+    /// (⌥⏎) strips formatting so only the plain string is pasted.
+    func confirmSelection(openFullWindow: Bool = false, plainText: Bool = false) {
         hidePanel()
         if openFullWindow {
             WindowOpener.showMainWindow()
@@ -101,7 +102,7 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
             && target?.bundleIdentifier != ownBundle   // don't ⌘V into our own window
         let pid = target?.processIdentifier
 
-        ClipboardMonitorHolder.monitor.copyAndIgnore(item)
+        ClipboardMonitorHolder.monitor.copyAndIgnore(item, plainText: plainText && item.text != nil)
         if shouldAutoPaste, let pid {
             // Give the panel time to close so the previous app has key focus back.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -146,8 +147,10 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
         p.onNavigate = { [weak self] delta in
             MainActor.assumeIsolated { self?.moveSelection(delta) }
         }
-        p.onConfirm = { [weak self] openFull in
-            MainActor.assumeIsolated { self?.confirmSelection(openFullWindow: openFull) }
+        p.onConfirm = { [weak self] openFull, plainText in
+            MainActor.assumeIsolated {
+                self?.confirmSelection(openFullWindow: openFull, plainText: plainText)
+            }
         }
         p.onCancel = { [weak self] in
             MainActor.assumeIsolated { self?.hidePanel() }
@@ -178,7 +181,7 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
 nonisolated final class QuickPanel: NSPanel {
 
     var onNavigate: ((Int) -> Void)?
-    var onConfirm: ((Bool) -> Void)?
+    var onConfirm: ((Bool, Bool) -> Void)?
     var onCancel: (() -> Void)?
 
     override var canBecomeKey: Bool { true }
@@ -190,7 +193,8 @@ nonisolated final class QuickPanel: NSPanel {
             case 126: onNavigate?(-1); return  // up arrow
             case 53: onCancel?(); return       // escape
             case 36, 76:                       // return / enter
-                onConfirm?(event.modifierFlags.contains(.command))
+                onConfirm?(event.modifierFlags.contains(.command),
+                          event.modifierFlags.contains(.option))
                 return
             default: break
             }
@@ -268,7 +272,7 @@ private struct QuickPasteView: View {
 
             HStack(spacing: 8) {
                 if controller.canAutoPaste {
-                    Text(l10n.t("Type to search, ↑↓ to select, ⏎ to paste"))
+                    Text(l10n.t("Type to search, ↑↓ to select, ⏎ paste, ⌥⏎ plain text"))
                         .foregroundStyle(.secondary)
                 } else {
                     Text(l10n.t("No Accessibility permission — items are only copied; press ⌘V to paste."))

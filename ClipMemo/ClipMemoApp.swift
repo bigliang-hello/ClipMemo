@@ -42,7 +42,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        ExclusionList.seedIfNeeded()
         HistoryStore.shared.seedIfNeeded()
+        if HistoryStore.shared.purgeExpired() {
+            HistoryStore.shared.refetch()
+        }
         ClipboardMonitorHolder.monitor.start()
 
         HotKeyManager.shared.register {
@@ -66,6 +70,10 @@ enum ClipboardMonitorHolder {
 struct ClipMemoApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @ObservedObject private var l10n = L10n.shared
+    // Scene/Commands don't reliably re-evaluate on ObservableObject changes,
+    // but they do on @AppStorage — reading it re-runs App.body (incl. the
+    // main-menu commands) whenever the language pref is written.
+    @AppStorage("appLanguage") private var appLanguage = "system"
 
     var body: some Scene {
         WindowGroup(id: "main") {
@@ -78,13 +86,16 @@ struct ClipMemoApp: App {
         .windowResizability(.contentSize)
         .commands {
             CommandGroup(after: .appSettings) {
-                Button(l10n.t("Quick Paste")) {
-                    QuickPasteController.shared.togglePanel()
+                Group {
+                    Button(l10n.t("Quick Paste")) {
+                        QuickPasteController.shared.togglePanel()
+                    }
+                    .keyboardShortcut("v", modifiers: [.command, .shift])
+                    Button(l10n.t("Show ClipMemo")) {
+                        WindowOpener.showMainWindow()
+                    }
                 }
-                .keyboardShortcut("v", modifiers: [.command, .shift])
-                Button(l10n.t("Show ClipMemo")) {
-                    WindowOpener.showMainWindow()
-                }
+                .id(appLanguage) // rebuild menu items when the language changes
             }
             CommandMenu(l10n.t("History")) {
                 Button(l10n.t("Copy Latest Item")) {

@@ -37,8 +37,9 @@ final class ClipboardMonitor: ObservableObject {
     }
 
     /// Copy an item back and mark the resulting changeCount as ours.
-    func copyAndIgnore(_ item: ClipboardItem) {
-        if store.copyToPasteboard(item) {
+    /// `plainText` strips formatting — only the plain string is written.
+    func copyAndIgnore(_ item: ClipboardItem, plainText: Bool = false) {
+        if store.copyToPasteboard(item, plainText: plainText) {
             ignoredChangeCount = NSPasteboard.general.changeCount
             lastChangeCount = NSPasteboard.general.changeCount
         }
@@ -53,19 +54,25 @@ final class ClipboardMonitor: ObservableObject {
             return
         }
         guard !isPaused else { return }
-        capture(from: pb)
+        // Attribute the clip to the app that was frontmost when it changed,
+        // and skip our own UI plus anything on the exclusion list.
+        let source = NSWorkspace.shared.frontmostApplication
+        let sourceBundleID = source?.bundleIdentifier
+        guard sourceBundleID != Bundle.main.bundleIdentifier,
+              !ExclusionList.isExcluded(sourceBundleID) else { return }
+        capture(from: pb, sourceBundleID: sourceBundleID, sourceName: source?.localizedName)
     }
 
     // MARK: Capture
 
-    private func capture(from pb: NSPasteboard) {
+    private func capture(from pb: NSPasteboard, sourceBundleID: String?, sourceName: String?) {
         let types = pb.types ?? []
 
         // 1. Files (file URLs, excluding plain URL strings from browsers)
         if let urls = pb.readObjects(forClasses: [NSURL.self],
                                      options: [.urlReadingFileURLsOnly: true]) as? [URL],
            let url = urls.first {
-            captureFile(url: url, urls: urls, pasteboard: pb)
+            captureFile(url: url, urls: urls, pasteboard: pb, sourceBundleID: sourceBundleID, sourceName: sourceName)
             return
         }
 
@@ -74,25 +81,25 @@ final class ClipboardMonitor: ObservableObject {
         if types.contains(where: imageTypes.contains) {
             if let type = imageTypes.first(where: { types.contains($0) }),
                let data = pb.data(forType: type) {
-                captureImage(data: data, pb: pb)
+                captureImage(data: data, pb: pb, sourceBundleID: sourceBundleID, sourceName: sourceName)
                 return
             }
         }
         if let data = pb.data(forType: NSPasteboard.PasteboardType(UTType.image.identifier)),
            NSBitmapImageRep(data: data) != nil {
-            captureImage(data: data, pb: pb)
+            captureImage(data: data, pb: pb, sourceBundleID: sourceBundleID, sourceName: sourceName)
             return
         }
 
         // 3. Text (rich text kept alongside the plain string)
         if let text = pb.string(forType: .string), !text.isEmpty {
             let rtf = types.contains(.rtf) ? pb.data(forType: .rtf) : nil
-            captureText(text: text, rtf: rtf)
+            captureText(text: text, rtf: rtf, sourceBundleID: sourceBundleID, sourceName: sourceName)
             return
         }
     }
 
-    private func captureText(text: String, rtf: Data?) {
+    private func captureText(text: String, rtf: Data?, sourceBundleID: String?, sourceName: String?) {
         let trimmed = String(text.prefix(maxTextLength))
         let cleanRTF = (rtf?.count ?? 0) <= maxDataLength ? rtf : nil
         var item = ClipboardItem(
@@ -101,10 +108,12 @@ final class ClipboardMonitor: ObservableObject {
             rtfData: cleanRTF
         )
         item.text = trimmed
+        item.sourceBundleID = sourceBundleID
+        item.sourceAppName = sourceName
         store.add(item)
     }
 
-    private func captureImage(data: Data, pb: NSPasteboard) {
+    private func captureImage(data: Data, pb: NSPasteboard, sourceBundleID: String?, sourceName: String?) {
         guard data.count <= maxDataLength else { return }
         let png: Data?
         if let rep = NSBitmapImageRep(data: data) {
@@ -123,16 +132,19 @@ final class ClipboardMonitor: ObservableObject {
             title = described
         }
 
-        let item = ClipboardItem(
+        var item = ClipboardItem(
             type: .image,
             fileName: title,
             fileKind: "PNG Image",
             fileSize: Int64(pngData.count)
         )
+        item.sourceBundleID = sourceBundleID
+        item.sourceAppName = sourceName
         store.add(item, imageBytes: pngData)
     }
 
-    private func captureFile(url: URL, urls: [URL], pasteboard pb: NSPasteboard) {
+    private func captureFile(url: URL, urls: [URL], pasteboard pb: NSPasteboard,
+                             sourceBundleID: String?, sourceName: String?) {
         let values = try? url.resourceValues(forKeys: [.fileSizeKey, .typeIdentifierKey, .localizedTypeDescriptionKey, .isRegularFileKey])
         let size = Int64(values?.fileSize ?? 0)
         let kind = values?.localizedTypeDescription
@@ -149,6 +161,8 @@ final class ClipboardMonitor: ObservableObject {
                 fileSize: size > 0 ? size : Int64(data.count)
             )
             item.fileURLPath = url.path
+            item.sourceBundleID = sourceBundleID
+            item.sourceAppName = sourceName
             store.add(item, imageBytes: data)
             return
         }
@@ -160,6 +174,8 @@ final class ClipboardMonitor: ObservableObject {
             fileSize: size,
             fileURLPath: url.path
         )
+        item.sourceBundleID = sourceBundleID
+        item.sourceAppName = sourceName
         if urls.count > 1 {
             item.text = urls.map(\.lastPathComponent).joined(separator: ", ")
         }

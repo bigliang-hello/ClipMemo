@@ -4,8 +4,12 @@ import SwiftUI
 struct DetailPreviewView: View {
     let item: ClipboardItem
     var onCopy: () -> Void
+    var onUpdateText: (String) -> Void = { _ in }
 
+    @ObservedObject private var l10n = L10n.shared
     @Environment(\.dismiss) private var dismiss
+    @State private var editMode = false
+    @State private var draftText = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,6 +35,19 @@ struct DetailPreviewView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .lineLimit(1)
             Spacer()
+            if item.type == .text || item.type == .code {
+                Button {
+                    draftText = item.text ?? ""
+                    editMode = true
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help(l10n.t("Edit"))
+                .disabled(editMode)
+            }
             Button {
                 dismiss()
             } label: {
@@ -50,8 +67,17 @@ struct DetailPreviewView: View {
                 .font(.system(size: 10.5))
                 .foregroundStyle(.tertiary)
             Spacer()
-            Button(L10n.shared.t("Copy")) { onCopy(); dismiss() }
+            if editMode {
+                Button(l10n.t("Cancel")) { editMode = false }
+                Button(l10n.t("Save")) {
+                    onUpdateText(draftText)
+                    dismiss()
+                }
                 .keyboardShortcut(.defaultAction)
+            } else {
+                Button(l10n.t("Copy")) { onCopy(); dismiss() }
+                    .keyboardShortcut(.defaultAction)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -82,6 +108,27 @@ struct DetailPreviewView: View {
 
     @ViewBuilder
     private var payload: some View {
+        if editMode {
+            TextEditor(text: $draftText)
+                .font(.system(size: 12.5,
+                              design: item.type == .code ? .monospaced : .default))
+                .frame(maxWidth: .infinity, minHeight: 280, alignment: .leading)
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.primary.opacity(0.04))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
+                )
+        } else {
+            payloadView
+        }
+    }
+
+    @ViewBuilder
+    private var payloadView: some View {
         switch item.type {
         case .image:
             if let image = ImageCache.image(for: item) {

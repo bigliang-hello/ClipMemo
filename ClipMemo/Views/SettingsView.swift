@@ -12,8 +12,11 @@ struct SettingsView: View {
     @State private var loginError: String?
     @State private var iCloudSync = UserDefaults.standard.bool(forKey: "iCloudSyncEnabled")
     @State private var language = L10n.shared.language
+    @State private var autoExpireDays = UserDefaults.standard.integer(forKey: "autoExpireDays")
+    @State private var excludedApps = ExclusionList.all
 
     private let limits: [Int] = [50, 100, 200, 500, 1000, 0]
+    private let expireChoices: [Int] = [0, 7, 30, 90]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,11 +58,36 @@ struct SettingsView: View {
                             .labelsHidden()
                             .fixedSize()
                         }
+                        HStack {
+                            Text(l10n.t("Auto-delete after")).font(.system(size: 12))
+                            Spacer()
+                            Picker(l10n.t("Auto-delete after"), selection: $autoExpireDays) {
+                                ForEach(expireChoices, id: \.self) { days in
+                                    Text(expireLabel(days)).tag(days)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                            .fixedSize()
+                        }
+                        .onChange(of: autoExpireDays) { _, days in
+                            UserDefaults.standard.set(days, forKey: "autoExpireDays")
+                            if HistoryStore.shared.purgeExpired() {
+                                HistoryStore.shared.refetch()
+                            }
+                        }
                         footnote(l10n.t("The oldest unpinned records are removed first. Pinned records are always kept."))
                     }
                     card("Privacy") {
                         toggleRow(l10n.t("Privacy mode (pause monitoring)"), isOn: $monitor.isPaused)
                         footnote(l10n.t("While enabled, ClipMemo ignores clipboard changes completely."))
+                    }
+                    card("Recording Exclusions") {
+                        ForEach(excludedApps, id: \.self) { bundleID in
+                            exclusionRow(bundleID)
+                        }
+                        addExclusionMenu
+                        footnote(l10n.t("Apps listed here are never recorded."))
                     }
                     card(nil) {
                         toggleRow(l10n.t("Sync history via iCloud"), isOn: $iCloudSync)
@@ -141,6 +169,71 @@ struct SettingsView: View {
         }
         .toggleStyle(.switch)
         .controlSize(.small)
+    }
+
+    private func expireLabel(_ days: Int) -> String {
+        switch days {
+        case 0: return l10n.t("Never")
+        case 7: return l10n.t("7 Days")
+        case 30: return l10n.t("30 Days")
+        default: return l10n.t("90 Days")
+        }
+    }
+
+    private func exclusionRow(_ bundleID: String) -> some View {
+        HStack(spacing: 8) {
+            if let icon = SourceApps.icon(for: bundleID) {
+                Image(nsImage: icon)
+                    .resizable()
+                    .frame(width: 16, height: 16)
+            } else {
+                Image(systemName: "app")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.tertiary)
+            }
+            Text(SourceApps.displayName(for: bundleID) ?? bundleID)
+                .font(.system(size: 12))
+                .lineLimit(1)
+            Spacer()
+            Button {
+                ExclusionList.remove(bundleID)
+                excludedApps = ExclusionList.all
+            } label: {
+                Image(systemName: "minus.circle.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.red.opacity(0.7))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.03)))
+    }
+
+    /// Pulldown listing currently running apps that aren't excluded yet.
+    private var addExclusionMenu: some View {
+        let candidates = NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular }
+            .compactMap { app -> (bundleID: String, name: String)? in
+                guard let bid = app.bundleIdentifier,
+                      bid != Bundle.main.bundleIdentifier,
+                      !ExclusionList.isExcluded(bid) else { return nil }
+                return (bid, app.localizedName ?? SourceApps.displayName(for: bid) ?? bid)
+            }
+            .sorted { $0.name < $1.name }
+        return Menu {
+            ForEach(candidates, id: \.bundleID) { candidate in
+                Button(candidate.name) {
+                    ExclusionList.add(candidate.bundleID)
+                    excludedApps = ExclusionList.all
+                }
+            }
+        } label: {
+            Label(l10n.t("Add Running App"), systemImage: "plus.circle")
+                .font(.system(size: 11))
+        }
+        .controlSize(.small)
+        .disabled(candidates.isEmpty)
     }
 
     private func footnote(_ text: String, color: Color = .secondary) -> some View {

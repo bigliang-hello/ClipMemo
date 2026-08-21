@@ -22,6 +22,8 @@ struct ClipboardItem: Identifiable, Codable, Equatable {
     var fileKind: String?             // e.g. "PNG Image", "PDF Document"
     var fileSize: Int64?              // bytes
     var fileURLPath: String?          // original path (file records)
+    var sourceBundleID: String?       // app the clip was copied from
+    var sourceAppName: String?
     var isPinned: Bool = false
     var createdAt: Date = Date()
 }
@@ -71,7 +73,7 @@ extension ClipboardItem {
 
     /// A plain-text payload used for search, sharing and fallback copy.
     var searchText: String {
-        [text, fileName, fileKind, fileURLPath]
+        [text, fileName, fileKind, fileURLPath, sourceAppName]
             .compactMap { $0 }
             .joined(separator: " ")
             .lowercased()
@@ -210,6 +212,7 @@ final class HistoryStore: ObservableObject {
         record.apply(item, imageBytes: imageBytes)
         try? viewContext.save()
         trimToLimit()
+        purgeExpired()
         refetch()
     }
 
@@ -235,6 +238,22 @@ final class HistoryStore: ObservableObject {
         try? viewContext.save()
     }
 
+    /// Removes unpinned records older than the "Auto-delete after" setting
+    /// (0 = never). Called on launch and whenever a new record is added.
+    @discardableResult
+    func purgeExpired() -> Bool {
+        let days = UserDefaults.standard.integer(forKey: "autoExpireDays")
+        guard days > 0, let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else {
+            return false
+        }
+        let request = ClipboardRecord.fetchRequest()
+        request.predicate = NSPredicate(format: "createdAt < %@ AND isPinned == NO", cutoff as NSDate)
+        guard let doomed = try? viewContext.fetch(request), !doomed.isEmpty else { return false }
+        doomed.forEach(viewContext.delete)
+        try? viewContext.save()
+        return true
+    }
+
     func remove(_ id: UUID) {
         guard let record = record(for: id) else { return }
         viewContext.delete(record)
@@ -245,6 +264,16 @@ final class HistoryStore: ObservableObject {
     func togglePin(_ id: UUID) {
         guard let record = record(for: id) else { return }
         record.isPinned.toggle()
+        try? viewContext.save()
+        refetch()
+    }
+
+    /// Edits a text/code record in place; the rich-text payload no longer
+    /// matches the edited text, so it is dropped.
+    func updateText(_ id: UUID, to newText: String) {
+        guard let record = record(for: id) else { return }
+        record.text = newText
+        record.rtfData = nil
         try? viewContext.save()
         refetch()
     }
@@ -308,9 +337,14 @@ final class HistoryStore: ObservableObject {
     // MARK: Copy back to the system pasteboard
 
     @discardableResult
-    func copyToPasteboard(_ item: ClipboardItem) -> Bool {
+    func copyToPasteboard(_ item: ClipboardItem, plainText: Bool = false) -> Bool {
         let pb = NSPasteboard.general
         pb.declareTypes([], owner: nil)
+        if plainText, let text = item.text {
+            // ⌥⏎ paste: strip formatting, only the plain string goes out.
+            pb.setString(text, forType: .string)
+            return true
+        }
         switch item.type {
         case .image:
             guard let data = imageData(for: item),

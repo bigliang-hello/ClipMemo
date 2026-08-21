@@ -5,6 +5,7 @@ struct ContentView: View {
     @EnvironmentObject var monitor: ClipboardMonitor
 
     @State private var activeFilter: ClipFilter = .all
+    @State private var sourceFilter: String?
     @State private var searchText = ""
     @State private var selectedID: UUID?
     @State private var toastMessage: String?
@@ -30,7 +31,9 @@ struct ContentView: View {
             SettingsView()
         }
         .sheet(item: $previewItem) { item in
-            DetailPreviewView(item: item) { copy(item) }
+            DetailPreviewView(item: item, onCopy: { copy(item) }) { newText in
+                store.updateText(item.id, to: newText)
+            }
         }
         .overlay(alignment: .bottom) { toastOverlay }
         .background(
@@ -55,6 +58,9 @@ struct ContentView: View {
                 SearchBarView(text: $searchText, focus: $searchFocused)
                 HStack {
                     SegmentedFilterBar(selection: $activeFilter, counts: counts)
+                    if let bid = sourceFilter {
+                        sourceFilterChip(bid)
+                    }
                     Spacer()
                     privacyBadge
                     clearButton
@@ -106,8 +112,41 @@ struct ContentView: View {
                 store.remove(item.id)
             },
             onPreview: { previewItem = item },
-            onTogglePin: { store.togglePin(item.id) }
+            onTogglePin: { store.togglePin(item.id) },
+            onSourceFilter: { bid in
+                sourceFilter = sourceFilter == bid ? nil : bid
+            }
         )
+    }
+
+    /// Removable capsule shown while a source-app filter is active.
+    private func sourceFilterChip(_ bundleID: String) -> some View {
+        let name = store.items.first { $0.sourceBundleID == bundleID }?.sourceAppName
+            ?? SourceApps.displayName(for: bundleID)
+            ?? bundleID
+        return HStack(spacing: 5) {
+            if let icon = SourceApps.icon(for: bundleID) {
+                Image(nsImage: icon)
+                    .resizable()
+                    .frame(width: 12, height: 12)
+            }
+            Text(String(format: L10n.shared.t("From %@"), name))
+                .font(.system(size: 10, weight: .medium))
+                .lineLimit(1)
+                .fixedSize()
+            Button {
+                sourceFilter = nil
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+        }
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(Color.blue.opacity(0.10)))
+        .help(L10n.shared.t("Clear filter"))
     }
 
     @ViewBuilder
@@ -184,6 +223,7 @@ struct ContentView: View {
         let query = searchText.trimmingCharacters(in: .whitespaces).lowercased()
         let filtered = store.items.filter { item in
             guard activeFilter.matches(item) else { return false }
+            if let sourceFilter, item.sourceBundleID != sourceFilter { return false }
             guard !query.isEmpty else { return true }
             return item.searchText.contains(query)
         }

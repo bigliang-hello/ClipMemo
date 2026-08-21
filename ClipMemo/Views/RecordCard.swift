@@ -73,6 +73,8 @@ struct RecordCard: View {
     var onDelete: () -> Void
     var onPreview: () -> Void
     var onTogglePin: () -> Void
+    /// Clicking the source-app chip filters the list to that app.
+    var onSourceFilter: ((String) -> Void)? = nil
 
     @State private var hover = false
     @Environment(\.colorScheme) private var colorScheme
@@ -98,6 +100,12 @@ struct RecordCard: View {
                 Button(L10n.shared.t("Copy")) { onCopy() }
                 Button(L10n.shared.t(item.isPinned ? "Unpin" : "Pin")) { onTogglePin() }
                 Button(L10n.shared.t("Preview")) { onPreview() }
+                if let bid = item.sourceBundleID, let name = item.sourceAppName {
+                    Divider()
+                    Button(String(format: L10n.shared.t("Exclude %@"), name)) {
+                        ExclusionList.add(bid)
+                    }
+                }
                 Divider()
                 Button(L10n.shared.t("Delete"), role: .destructive) { onDelete() }
             }
@@ -193,6 +201,26 @@ struct RecordCard: View {
     private var trailingControls: some View {
         VStack(alignment: .trailing, spacing: 7) {
             HStack(spacing: 8) {
+                if let bid = item.sourceBundleID, let name = item.sourceAppName {
+                    Button {
+                        onSourceFilter?(bid)
+                    } label: {
+                        HStack(spacing: 3) {
+                            if let icon = SourceApps.icon(for: bid) {
+                                Image(nsImage: icon)
+                                    .resizable()
+                                    .frame(width: 11, height: 11)
+                            }
+                            Text(name)
+                                .lineLimit(1)
+                                .fixedSize()
+                        }
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(L10n.shared.t("Filter by this app"))
+                }
                 Text(item.formattedTime)
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
