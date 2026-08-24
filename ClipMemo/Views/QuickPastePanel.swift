@@ -38,9 +38,13 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
     @Published var query = ""
     @Published var selectionIndex = 0
     @Published private(set) var panelVisible = false
+    /// Mirrors the TCC state so the banner updates the moment the user flips
+    /// the switch in System Settings (no notification exists for that).
+    @Published private(set) var pastePermissionGranted = AccessibilityPermission.isGranted
 
     private var panel: QuickPanel?
     private var previousApp: NSRunningApplication?
+    private var permissionTimer: Timer?
 
     /// Rows shown in the palette (search over title/subtitle/body, newest first).
     var filteredItems: [ClipboardItem] {
@@ -65,6 +69,7 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
         previousApp = NSWorkspace.shared.frontmostApplication
         query = ""
         selectionIndex = 0
+        startPermissionPolling()
         position(p)
         p.orderFrontRegardless()
         p.makeKey()
@@ -74,6 +79,26 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
     func hidePanel() {
         panel?.orderOut(nil)
         panelVisible = false
+        permissionTimer?.invalidate()
+        permissionTimer = nil
+    }
+
+    /// While the panel is up, watch for the user granting Accessibility in
+    /// System Settings so the guidance banner disappears without a reopen.
+    private func startPermissionPolling() {
+        permissionTimer?.invalidate()
+        pastePermissionGranted = AccessibilityPermission.isGranted
+        guard !pastePermissionGranted else { return }
+        let timer = Timer(timeInterval: 0.8, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, AccessibilityPermission.isGranted else { return }
+                self.pastePermissionGranted = true
+                self.permissionTimer?.invalidate()
+                self.permissionTimer = nil
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        permissionTimer = timer
     }
 
     func moveSelection(_ delta: Int) {
@@ -291,6 +316,10 @@ private struct QuickPasteView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
 
+            if !controller.pastePermissionGranted {
+                permissionBanner
+            }
+
             Divider()
 
             ScrollViewReader { proxy in
@@ -327,16 +356,9 @@ private struct QuickPasteView: View {
             Divider()
 
             HStack(spacing: 8) {
-                if controller.canAutoPaste {
+                if controller.pastePermissionGranted {
                     Text(l10n.t("Type to search, ↑↓ to select, ⏎ paste, ⌥⏎ plain text"))
                         .foregroundStyle(.secondary)
-                } else {
-                    Text(l10n.t("No Accessibility permission — items are only copied; press ⌘V to paste."))
-                        .foregroundStyle(.orange)
-                    Button(l10n.t("Open System Settings")) {
-                        AccessibilityPermission.request()
-                    }
-                    .controlSize(.mini)
                 }
                 Spacer()
                 Button(l10n.t("Full History…")) {
@@ -348,6 +370,46 @@ private struct QuickPasteView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
+    }
+
+    /// Prominent onboarding card shown while Accessibility is missing: what
+    /// it's for, the exact toggle path, and a one-click jump there.
+    private var permissionBanner: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.orange)
+                Text(l10n.t("Enable Auto Paste"))
+                    .font(.system(size: 11.5, weight: .semibold))
+                Spacer()
+            }
+            Text(l10n.t("ClipMemo needs Accessibility to paste back into the app you were typing in."))
+                .font(.system(size: 10.5))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(l10n.t("System Settings → Privacy & Security → Accessibility → turn on ClipMemo."))
+                .font(.system(size: 10.5))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                AccessibilityPermission.request()
+            } label: {
+                Label(l10n.t("Authorize…"), systemImage: "arrow.up.forward.app")
+                    .font(.system(size: 10.5, weight: .medium))
+            }
+            .controlSize(.small)
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(Color.orange.opacity(0.09)))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .strokeBorder(Color.orange.opacity(0.25), lineWidth: 0.5))
+        .padding(.horizontal, 10)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
     }
 }
 
