@@ -54,6 +54,14 @@ final class ClipboardMonitor: ObservableObject {
             return
         }
         guard !isPaused else { return }
+        // Password managers (1Password, Bitwarden, KeePassXC, Safari/Keychain…)
+        // mark copied secrets with this pasteboard type (nspasteboard.org
+        // convention) — concealed content is never recorded, no matter which
+        // app is frontmost. This also covers browser-extension copies that
+        // bypass the source-app exclusion list.
+        if pb.types?.contains(NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")) == true {
+            return
+        }
         // Attribute the clip to the app that was frontmost when it changed,
         // and skip our own UI plus anything on the exclusion list.
         let source = NSWorkspace.shared.frontmostApplication

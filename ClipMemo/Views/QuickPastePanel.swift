@@ -213,6 +213,62 @@ private struct QuickPasteView: View {
 
     var body: some View {
         let items = controller.filteredItems
+        // The hosting panel resizes with the SwiftUI content, so appending the
+        // preview column widens the panel (left edge anchored) while an image
+        // row is selected, and collapses back when the selection moves on.
+        HStack(spacing: 0) {
+            listColumn(items)
+                .frame(width: 400)
+            if let previewImage = selectedPreviewImage(in: items) {
+                Divider()
+                previewColumn(previewImage)
+            }
+        }
+        .frame(height: 380)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+        )
+        .onAppear { searchFocused = true }
+    }
+
+    /// Enlarged image for the row currently under selection, if it is one.
+    private func selectedPreviewImage(in items: [ClipboardItem]) -> NSImage? {
+        guard items.indices.contains(controller.selectionIndex) else { return nil }
+        let item = items[controller.selectionIndex]
+        guard item.type == .image else { return nil }
+        return ImageCache.image(for: item)
+    }
+
+    private func previewColumn(_ image: NSImage) -> some View {
+        VStack(spacing: 6) {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .padding(.horizontal, 10)
+                .padding(.top, 10)
+            Text(Self.pixelLabel(image))
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
+                .padding(.bottom, 8)
+        }
+        .frame(width: 220)
+    }
+
+    /// True pixel dimensions of the image (points can be scaled on retina).
+    private static func pixelLabel(_ image: NSImage) -> String {
+        if let rep = image.representations.first {
+            return "\(rep.pixelsWide) × \(rep.pixelsHigh)"
+        }
+        let size = image.size
+        return "\(Int(size.width)) × \(Int(size.height))"
+    }
+
+    private func listColumn(_ items: [ClipboardItem]) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
@@ -292,14 +348,6 @@ private struct QuickPasteView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
-        .frame(width: 400, height: 380)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
-        )
-        .onAppear { searchFocused = true }
     }
 }
 
@@ -309,14 +357,7 @@ private struct QuickRow: View {
 
     var body: some View {
         HStack(spacing: 9) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 5)
-                    .fill(badgeColor.opacity(0.15))
-                    .frame(width: 24, height: 24)
-                Image(systemName: iconName)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(badgeColor)
-            }
+            leadingPreview
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.titleLine)
                     .font(.system(size: 12))
@@ -343,6 +384,28 @@ private struct QuickRow: View {
                 .fill(isSelected ? Color.blue.opacity(0.13) : .clear)
         )
         .contentShape(Rectangle())
+    }
+
+    /// Image rows show the actual content as a thumbnail; everything else
+    /// keeps the colored glyph badge.
+    @ViewBuilder
+    private var leadingPreview: some View {
+        if item.type == .image, let nsImage = ImageCache.image(for: item) {
+            Image(nsImage: nsImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 24, height: 24)
+                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(badgeColor.opacity(0.15))
+                    .frame(width: 24, height: 24)
+                Image(systemName: iconName)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(badgeColor)
+            }
+        }
     }
 
     private var iconName: String {
