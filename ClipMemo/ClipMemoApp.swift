@@ -43,7 +43,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         ExclusionList.seedIfNeeded()
-        HistoryStore.shared.seedIfNeeded()
         if HistoryStore.shared.purgeExpired() {
             HistoryStore.shared.refetch()
         }
