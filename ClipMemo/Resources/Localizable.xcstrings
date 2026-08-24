@@ -1,12 +1,8 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {
-
-    },
-    " " : {
-
-    },
+    "" : {},
+    " " : {},
     "%@ · %@" : {
       "localizations" : {
         "en" : {
@@ -17,14 +13,17 @@
         }
       }
     },
-    "%lld" : {
-
-    },
-    "⌘⇧V" : {
-
-    },
-    "⌘K" : {
-
+    "%lld" : {},
+    "30 Days" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 天"
+          }
+        }
+      }
     },
     "7 Days" : {
       "extractionState" : "stale",
@@ -33,17 +32,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "7 天"
-          }
-        }
-      }
-    },
-    "30 Days" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30 天"
           }
         }
       }
@@ -114,6 +102,16 @@
         }
       }
     },
+    "API Key" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API 密钥"
+          }
+        }
+      }
+    },
     "Apps listed here are never recorded." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -164,7 +162,17 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Base64 编解码"
+            "value" : "Base64"
+          }
+        }
+      }
+    },
+    "Base64, URL, Unicode escape and hashes." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base64、URL、Unicode 转义与哈希。"
           }
         }
       }
@@ -246,12 +254,8 @@
         }
       }
     },
-    "ClipMemo" : {
-
-    },
-    "ClipMemo 1.0" : {
-
-    },
+    "ClipMemo" : {},
+    "ClipMemo 1.0" : {},
     "Code · %d lines" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -373,6 +377,16 @@
         }
       }
     },
+    "DeepL requires an API key." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DeepL 需要先填入 API 密钥。"
+          }
+        }
+      }
+    },
     "Delete" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -428,6 +442,16 @@
         }
       }
     },
+    "Encode / Decode" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编解码"
+          }
+        }
+      }
+    },
     "Encode or decode Base64 text." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -461,9 +485,7 @@
         }
       }
     },
-    "esc" : {
-
-    },
+    "esc" : {},
     "Excel Spreadsheet" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -519,6 +541,16 @@
         }
       }
     },
+    "Follow App Language" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟随界面语言"
+          }
+        }
+      }
+    },
     "Follow System" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -526,6 +558,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跟随系统"
+          }
+        }
+      }
+    },
+    "Free API key at deepl.com" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 deepl.com 免费注册获取密钥"
           }
         }
       }
@@ -559,6 +601,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通用"
+          }
+        }
+      }
+    },
+    "Google Translate by default, or DeepL." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认 Google 翻译,可选 DeepL。"
+          }
+        }
+      }
+    },
+    "Hash" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "哈希"
           }
         }
       }
@@ -658,6 +720,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法识别的颜色"
+          }
+        }
+      }
+    },
+    "Invalid input" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法解析该输入"
           }
         }
       }
@@ -915,17 +987,6 @@
         }
       }
     },
-    "Previous 7 Days" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "近 7 天"
-          }
-        }
-      }
-    },
     "Previous 30 Days" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -933,6 +994,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "近 30 天"
+          }
+        }
+      }
+    },
+    "Previous 7 Days" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "近 7 天"
           }
         }
       }
@@ -1190,9 +1262,7 @@
         }
       }
     },
-    "T" : {
-
-    },
+    "T" : {},
     "Text" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1204,13 +1274,12 @@
         }
       }
     },
-    "Text · %d characters" : {
-      "extractionState" : "stale",
+    "Text is sent to the selected translation service." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "文本 · %d 个字符"
+            "value" : "文本将发送到所选翻译服务。"
           }
         }
       }
@@ -1233,6 +1302,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要翻译的文本"
+          }
+        }
+      }
+    },
+    "Text · %d characters" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文本 · %d 个字符"
           }
         }
       }
@@ -1336,6 +1416,16 @@
         }
       }
     },
+    "Translating…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译中…"
+          }
+        }
+      }
+    },
     "Translation failed" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1391,6 +1481,16 @@
         }
       }
     },
+    "Unicode" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unicode"
+          }
+        }
+      }
+    },
     "Unix Timestamp" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1435,6 +1535,16 @@
         }
       }
     },
+    "URL" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL"
+          }
+        }
+      }
+    },
     "While enabled, ClipMemo ignores clipboard changes completely." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1456,7 +1566,9 @@
           }
         }
       }
-    }
+    },
+    "⌘K" : {},
+    "⌘⇧V" : {}
   },
   "version" : "1.0"
 }

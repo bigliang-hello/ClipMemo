@@ -1,10 +1,10 @@
 import SwiftUI
-import Translation
+import CryptoKit
 
 // MARK: - Tool registry
 
 enum ToolboxTool: String, CaseIterable, Identifiable {
-    case color, translate, qr, base64, timestamp
+    case color, translate, qr, codec, timestamp
 
     var id: String { rawValue }
 
@@ -13,7 +13,7 @@ enum ToolboxTool: String, CaseIterable, Identifiable {
         case .color: return "Color Converter"
         case .translate: return "Translate Text"
         case .qr: return "QR Code"
-        case .base64: return "Base64"
+        case .codec: return "Encode / Decode"
         case .timestamp: return "Timestamp"
         }
     }
@@ -21,9 +21,9 @@ enum ToolboxTool: String, CaseIterable, Identifiable {
     var subtitleKey: String {
         switch self {
         case .color: return "Convert between HEX, RGB, HSL and more."
-        case .translate: return "Translate with the system translation engine."
+        case .translate: return "Google Translate by default, or DeepL."
         case .qr: return "Turn text or links into a scannable code."
-        case .base64: return "Encode or decode Base64 text."
+        case .codec: return "Base64, URL, Unicode escape and hashes."
         case .timestamp: return "Convert Unix timestamps to readable dates."
         }
     }
@@ -33,7 +33,7 @@ enum ToolboxTool: String, CaseIterable, Identifiable {
         case .color: return "paintpalette"
         case .translate: return "character.book.closed"
         case .qr: return "qrcode"
-        case .base64: return "curlybraces"
+        case .codec: return "curlybraces"
         case .timestamp: return "clock"
         }
     }
@@ -43,7 +43,7 @@ enum ToolboxTool: String, CaseIterable, Identifiable {
         case .color: return .pink
         case .translate: return .blue
         case .qr: return .indigo
-        case .base64: return .green
+        case .codec: return .green
         case .timestamp: return .orange
         }
     }
@@ -118,7 +118,7 @@ struct ToolboxView: View {
         case .color: ColorTool()
         case .translate: TranslateTool()
         case .qr: QRTool()
-        case .base64: Base64Tool()
+        case .codec: CodecTool()
         case .timestamp: TimestampTool()
         }
     }
@@ -368,17 +368,147 @@ private struct ColorTool: View {
     }
 }
 
-// MARK: - Translate (system Translation framework)
+// MARK: - Translate (Google gtx / DeepL)
+
+private enum TranslationEngine: String, CaseIterable, Identifiable {
+    case google, deepl
+    var id: String { rawValue }
+}
+
+private enum TranslateTarget: String, CaseIterable, Identifiable {
+    case app, zh, en, ja, ko, fr, de, es, ru, pt, ar
+
+    var id: String { rawValue }
+
+    var nativeName: String {
+        switch self {
+        case .app: return L10n.shared.t("Follow App Language")
+        case .zh: return "简体中文"
+        case .en: return "English"
+        case .ja: return "日本語"
+        case .ko: return "한국어"
+        case .fr: return "Français"
+        case .de: return "Deutsch"
+        case .es: return "Español"
+        case .ru: return "Русский"
+        case .pt: return "Português"
+        case .ar: return "العربية"
+        }
+    }
+
+    var googleCode: String {
+        self == .zh ? "zh-CN" : rawValue
+    }
+
+    var deeplCode: String {
+        self == .pt ? "PT-BR" : rawValue.uppercased()
+    }
+
+    /// Resolves "follow app language" to a concrete target.
+    static func resolve(_ pick: TranslateTarget) -> TranslateTarget {
+        guard pick == .app else { return pick }
+        let code: String
+        switch L10n.shared.language {
+        case .chinese: code = "zh"
+        case .english: code = "en"
+        case .system: code = Locale.current.language.languageCode?.identifier ?? "en"
+        }
+        return TranslateTarget(rawValue: code) ?? .en
+    }
+}
+
+/// Minimal generic-password wrapper so the DeepL key doesn't sit in
+/// UserDefaults (which is plain text inside the app container).
+private enum KeychainStore {
+    private static let service = Bundle.main.bundleIdentifier ?? "ClipMemo"
+
+    static func set(_ value: String, forKey key: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+        ]
+        SecItemDelete(query as CFDictionary)
+        guard !value.isEmpty else { return }
+        var attrs = query
+        attrs[kSecValueData as String] = Data(value.utf8)
+        SecItemAdd(attrs as CFDictionary, nil)
+    }
+
+    static func get(_ key: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+}
 
 private struct TranslateTool: View {
     @ObservedObject private var l10n = L10n.shared
     @State private var input = ""
     @State private var output = ""
     @State private var failed = false
-    @State private var config: TranslationSession.Configuration?
+    @State private var missingKey = false
+    @State private var busy = false
+    @State private var engine: TranslationEngine =
+        TranslationEngine(rawValue: UserDefaults.standard.string(forKey: "translateEngine") ?? "") ?? .google
+    @State private var target: TranslateTarget =
+        TranslateTarget(rawValue: UserDefaults.standard.string(forKey: "translateTarget") ?? "") ?? .app
+    @State private var deeplKey = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Picker("", selection: $engine) {
+                    Text("Google").tag(TranslationEngine.google)
+                    Text("DeepL").tag(TranslationEngine.deepl)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 150)
+                Picker("", selection: $target) {
+                    ForEach(TranslateTarget.allCases) { target in
+                        Text(target.nativeName).tag(target)
+                    }
+                }
+                .pickerStyle(.menu)
+                .fixedSize()
+                Spacer()
+            }
+            .onChange(of: engine) { _, e in
+                UserDefaults.standard.set(e.rawValue, forKey: "translateEngine")
+            }
+            .onChange(of: target) { _, t in
+                UserDefaults.standard.set(t.rawValue, forKey: "translateTarget")
+            }
+
+            if engine == .deepl {
+                HStack(spacing: 8) {
+                    Image(systemName: "key")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                    SecureField(l10n.t("API Key"), text: $deeplKey)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12, design: .monospaced))
+                        .onChange(of: deeplKey) { _, k in
+                            KeychainStore.set(k, forKey: "deeplAPIKey")
+                        }
+                    Text(l10n.t("Free API key at deepl.com"))
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                        .fixedSize()
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+            }
+
             ToolFieldHeader(titleKey: "Text to translate") {
                 pasteFromClipboard()
             }
@@ -391,18 +521,26 @@ private struct TranslateTool: View {
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
 
             Button {
-                failed = false
-                config = .init() // presents the system translation sheet
+                translate()
             } label: {
-                Label(l10n.t("Translate"), systemImage: "character.book.closed")
-                    .font(.system(size: 12, weight: .medium))
+                HStack(spacing: 6) {
+                    if busy {
+                        ProgressView().controlSize(.small)
+                    }
+                    Text(busy ? l10n.t("Translating…") : l10n.t("Translate"))
+                        .font(.system(size: 12, weight: .medium))
+                }
             }
-            .controlSize(.regular)
             .buttonStyle(.borderedProminent)
-            .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(busy || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
             if failed {
                 Text(l10n.t("Translation failed"))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange)
+            }
+            if missingKey {
+                Text(l10n.t("DeepL requires an API key."))
                     .font(.system(size: 11))
                     .foregroundStyle(.orange)
             }
@@ -423,19 +561,90 @@ private struct TranslateTool: View {
                 .padding(8)
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
             }
+
+            Text(l10n.t("Text is sent to the selected translation service."))
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: 520, alignment: .leading)
-        .translationTask(config) { session in
-            let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { return }
+        .onAppear { deeplKey = KeychainStore.get("deeplAPIKey") ?? "" }
+    }
+
+    // MARK: Engines
+
+    private func translate() {
+        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        failed = false
+        missingKey = false
+        let key = deeplKey.trimmingCharacters(in: .whitespaces)
+        if engine == .deepl && key.isEmpty {
+            missingKey = true
+            return
+        }
+        let lang = TranslateTarget.resolve(target)
+        let engine = engine
+        busy = true
+        Task {
             do {
-                let response = try await session.translate(text)
-                output = response.targetText
-                failed = false
+                output = try await Self.run(engine: engine, text: text, target: lang, deeplKey: key)
             } catch {
+                output = ""
                 failed = true
             }
+            busy = false
         }
+    }
+
+    private static func run(engine: TranslationEngine, text: String,
+                            target: TranslateTarget, deeplKey: String) async throws -> String {
+        switch engine {
+        case .google: return try await google(text: text, target: target)
+        case .deepl: return try await deepl(text: text, target: target, key: deeplKey)
+        }
+    }
+
+    /// Google's public gtx endpoint — no key, auto source detection.
+    /// Response: [[["translated","source",…],…], …] (nested JSON arrays).
+    private static func google(text: String, target: TranslateTarget) async throws -> String {
+        guard let url = URL(string: "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&dt=t&tl=\(target.googleCode)") else {
+            throw URLError(.badURL)
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        var comps = URLComponents()
+        comps.queryItems = [URLQueryItem(name: "q", value: text)]
+        request.httpBody = comps.percentEncodedQuery?.data(using: .utf8)
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let payload = try JSONSerialization.jsonObject(with: data) as? [Any]
+        guard let segments = payload?.first as? [[Any]] else { throw URLError(.cannotParseResponse) }
+        let translated = segments.compactMap { $0.first as? String }.joined()
+        guard !translated.isEmpty else { throw URLError(.cannotParseResponse) }
+        return translated
+    }
+
+    /// DeepL official API. Free keys end in ":fx" and use the api-free host.
+    private static func deepl(text: String, target: TranslateTarget, key: String) async throws -> String {
+        let host = key.hasSuffix(":fx") ? "api-free.deepl.com" : "api.deepl.com"
+        guard let url = URL(string: "https://\(host)/v2/translate") else { throw URLError(.badURL) }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("DeepL-Auth-Key \(key)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        var comps = URLComponents()
+        comps.queryItems = [
+            URLQueryItem(name: "text", value: text),
+            URLQueryItem(name: "target_lang", value: target.deeplCode),
+        ]
+        request.httpBody = comps.percentEncodedQuery?.data(using: .utf8)
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let translations = payload?["translations"] as? [[String: Any]],
+              let translated = translations.first?["text"] as? String else {
+            throw URLError(.cannotParseResponse)
+        }
+        return translated
     }
 
     private func pasteFromClipboard() {
@@ -525,16 +734,60 @@ private struct QRTool: View {
     }
 }
 
-// MARK: - Base64
+// MARK: - Codec (Base64 / URL / Unicode escape, hashes)
 
-private struct Base64Tool: View {
+private enum CodecOp: String, CaseIterable, Identifiable {
+    case encode, decode, hash
+    var id: String { rawValue }
+}
+
+private enum CodecFormat: String, CaseIterable, Identifiable {
+    case base64, url, unicode
+    var id: String { rawValue }
+
+    var labelKey: String {
+        switch self {
+        case .base64: return "Base64"
+        case .url: return "URL"
+        case .unicode: return "Unicode"
+        }
+    }
+}
+
+private extension Digest {
+    var hexString: String {
+        map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+private struct CodecTool: View {
     @ObservedObject private var l10n = L10n.shared
     @State private var input = ""
-    @State private var output = ""
-    @State private var invalid = false
+    @State private var op: CodecOp = .encode
+    @State private var format: CodecFormat = .base64
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Picker("", selection: $op) {
+                    Text(l10n.t("Encode")).tag(CodecOp.encode)
+                    Text(l10n.t("Decode")).tag(CodecOp.decode)
+                    Text(l10n.t("Hash")).tag(CodecOp.hash)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 210)
+                if op != .hash {
+                    Picker("", selection: $format) {
+                        ForEach(CodecFormat.allCases) { f in
+                            Text(l10n.t(f.labelKey)).tag(f)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .fixedSize()
+                }
+                Spacer()
+            }
+
             ToolFieldHeader(titleKey: "Input") {
                 if let text = NSPasteboard.general.string(forType: .string), !text.isEmpty {
                     input = text
@@ -548,26 +801,28 @@ private struct Base64Tool: View {
                 .padding(8)
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
 
-            HStack(spacing: 10) {
-                Button(l10n.t("Encode")) { run(encode: true) }
-                Button(l10n.t("Decode")) { run(encode: false) }
-            }
-            .controlSize(.regular)
-
-            if invalid {
-                Text(l10n.t("Invalid Base64 input"))
+            if result.failed {
+                Text(l10n.t("Invalid input"))
                     .font(.system(size: 11))
                     .foregroundStyle(.orange)
             }
 
-            if !output.isEmpty {
+            if op == .hash {
+                if !input.isEmpty {
+                    VStack(spacing: 4) {
+                        ForEach(hashRows, id: \.0) { algo, hex in
+                            CopyRow(label: algo, value: hex)
+                        }
+                    }
+                }
+            } else if let text = result.text, !text.isEmpty {
                 ToolFieldHeader(titleKey: "Output") {
                     let pb = NSPasteboard.general
                     pb.clearContents()
-                    pb.setString(output, forType: .string)
+                    pb.setString(text, forType: .string)
                 }
                 ScrollView {
-                    Text(output)
+                    Text(text)
                         .font(.system(size: 12.5, design: .monospaced))
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -580,23 +835,121 @@ private struct Base64Tool: View {
         .frame(maxWidth: 520, alignment: .leading)
     }
 
-    private func run(encode: Bool) {
-        invalid = false
-        output = ""
+    // MARK: Conversion (live)
+
+    private var result: (text: String?, failed: Bool) {
         let text = input
-        if encode {
-            output = Data(text.utf8).base64EncodedString()
-        } else {
+        guard !text.isEmpty else { return (nil, false) }
+        switch (op, format) {
+        case (.encode, .base64):
+            return (Data(text.utf8).base64EncodedString(), false)
+        case (.decode, .base64):
             let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 .replacingOccurrences(of: "\n", with: "")
                 .replacingOccurrences(of: " ", with: "")
-            guard let data = Data(base64Encoded: cleaned),
-                  let decoded = String(data: data, encoding: .utf8) else {
-                invalid = true
-                return
+            if let data = Data(base64Encoded: cleaned),
+               let decoded = String(data: data, encoding: .utf8) {
+                return (decoded, false)
             }
-            output = decoded
+            return (nil, true)
+        case (.encode, .url):
+            var allowed = CharacterSet.alphanumerics
+            allowed.insert(charactersIn: "-._~")
+            return (text.addingPercentEncoding(withAllowedCharacters: allowed), false)
+        case (.decode, .url):
+            if let decoded = text.removingPercentEncoding {
+                return (decoded, false)
+            }
+            return (nil, true)
+        case (.encode, .unicode):
+            return (Self.escapeUnicode(text), false)
+        case (.decode, .unicode):
+            return (Self.unescapeUnicode(text), false)
+        case (.hash, _):
+            return (nil, false) // hashes render as rows below
         }
+    }
+
+    private var hashRows: [(String, String)] {
+        let data = Data(input.utf8)
+        return [
+            ("MD5", Insecure.MD5.hash(data: data).hexString),
+            ("SHA-1", Insecure.SHA1.hash(data: data).hexString),
+            ("SHA-256", SHA256.hash(data: data).hexString),
+            ("SHA-512", SHA512.hash(data: data).hexString),
+        ]
+    }
+
+    /// Non-ASCII → `\uXXXX`; astral planes → JSON-style surrogate pairs.
+    private static func escapeUnicode(_ s: String) -> String {
+        var out = ""
+        for scalar in s.unicodeScalars {
+            if scalar.value < 0x80 {
+                out.unicodeScalars.append(scalar)
+            } else if scalar.value <= 0xFFFF {
+                out += String(format: "\\u%04x", scalar.value)
+            } else {
+                let v = scalar.value - 0x10000
+                out += String(format: "\\u%04x\\u%04x",
+                              0xD800 + (v >> 10),
+                              0xDC00 + (v & 0x3FF))
+            }
+        }
+        return out
+    }
+
+    /// `\uXXXX` / `\UXXXXXXXX` → text, combining adjacent surrogate pairs.
+    private static func unescapeUnicode(_ s: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: "\\\\(u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})") else {
+            return s
+        }
+        let matches = regex.matches(in: s, range: NSRange(s.startIndex..., in: s))
+        var out = ""
+        var cursor = s.startIndex
+        var index = 0
+
+        func value(_ match: NSTextCheckingResult) -> UInt32? {
+            guard let r = Range(match.range, in: s) else { return nil }
+            let body = s[s.index(r.lowerBound, offsetBy: 2)..<r.upperBound]
+            return UInt32(body, radix: 16)
+        }
+        func appendLiteral(_ match: NSTextCheckingResult) {
+            guard let r = Range(match.range, in: s) else { return }
+            out += String(s[r])
+        }
+
+        while index < matches.count {
+            // Copy the text between matches.
+            if let r = Range(matches[index].range, in: s), cursor < r.lowerBound {
+                out += s[cursor..<r.lowerBound]
+                cursor = r.lowerBound
+            }
+            let adjacent = index + 1 < matches.count
+                && matches[index + 1].range.location == matches[index].range.location + matches[index].range.length
+            if let hi = value(matches[index]), (0xD800...0xDBFF).contains(hi),
+               adjacent, let lo = value(matches[index + 1]), (0xDC00...0xDFFF).contains(lo) {
+                let combined = 0x10000 + ((hi - 0xD800) << 10) + (lo - 0xDC00)
+                if let scalar = Unicode.Scalar(combined) {
+                    out.unicodeScalars.append(scalar)
+                    cursor = Range(matches[index + 1].range, in: s)!.upperBound
+                    index += 2
+                    continue
+                }
+            }
+            if let v = value(matches[index]), let scalar = Unicode.Scalar(v) {
+                out.unicodeScalars.append(scalar)
+            } else {
+                appendLiteral(matches[index]) // unpaired surrogate or invalid — keep as written
+            }
+            if let r = Range(matches[index].range, in: s), cursor < r.upperBound {
+                cursor = r.upperBound
+            }
+            index += 1
+        }
+        if cursor < s.endIndex {
+            out += s[cursor...]
+        }
+        return out
     }
 }
 
