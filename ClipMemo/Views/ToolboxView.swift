@@ -1,5 +1,6 @@
 import SwiftUI
 import CryptoKit
+import UniformTypeIdentifiers
 
 // MARK: - Tool registry
 
@@ -201,6 +202,24 @@ private struct CopyRow: View {
     }
 }
 
+private extension View {
+    /// Shared input-box chrome: subtle fill + hairline border, so every tool
+    /// field reads as an actual text field instead of a bare colored patch.
+    func toolFieldStyle() -> some View {
+        self
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.primary.opacity(0.045))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
+            )
+    }
+}
+
 // MARK: - Color converter
 
 private struct ParsedColor: Equatable {
@@ -325,9 +344,7 @@ private struct ColorTool: View {
                 }
                 .controlSize(.small)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+            .toolFieldStyle()
 
             if !input.isEmpty && parsed == nil {
                 Text(l10n.t("Invalid color"))
@@ -352,7 +369,7 @@ private struct ColorTool: View {
                 }
             }
         }
-        .frame(maxWidth: 520, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func pickFromScreen() {
@@ -504,9 +521,7 @@ private struct TranslateTool: View {
                         .foregroundStyle(.tertiary)
                         .fixedSize()
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+                .toolFieldStyle()
             }
 
             ToolFieldHeader(titleKey: "Text to translate") {
@@ -517,8 +532,7 @@ private struct TranslateTool: View {
                 .font(.system(size: 12.5))
                 .scrollContentBackground(.hidden)
                 .frame(height: 110)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+                .toolFieldStyle()
 
             Button {
                 translate()
@@ -558,15 +572,14 @@ private struct TranslateTool: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(height: 110)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+                .toolFieldStyle()
             }
 
             Text(l10n.t("Text is sent to the selected translation service."))
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
         }
-        .frame(maxWidth: 520, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .onAppear { deeplKey = KeychainStore.get("deeplAPIKey") ?? "" }
     }
 
@@ -656,22 +669,52 @@ private struct TranslateTool: View {
 
 // MARK: - QR code
 
+private enum QRModuleStyle: String, CaseIterable, Identifiable {
+    case square, dot, rounded
+    var id: String { rawValue }
+
+    var labelKey: String {
+        switch self {
+        case .square: return "Square"
+        case .dot: return "Dots"
+        case .rounded: return "Rounded"
+        }
+    }
+}
+
+private enum QRCorrection: String, CaseIterable, Identifiable {
+    case l = "L", m = "M", q = "Q", h = "H"
+    var id: String { rawValue }
+
+    /// Letter plus the data-recovery capacity it can survive, e.g. "H · 30%".
+    var label: String {
+        switch self {
+        case .l: return "L · 7%"
+        case .m: return "M · 15%"
+        case .q: return "Q · 25%"
+        case .h: return "H · 30%"
+        }
+    }
+}
+
 private struct QRTool: View {
     @ObservedObject private var l10n = L10n.shared
     @State private var content = ""
     @State private var copied = false
+    @State private var fgColor: Color = .black
+    @State private var bgColor: Color = .white
+    @State private var logo: NSImage?
+    @State private var pickingLogo = false
+    // Structural choices persist across launches; colors stay session-only.
+    @AppStorage("qrModuleStyle") private var styleRaw = QRModuleStyle.square.rawValue
+    @AppStorage("qrCorrection") private var correctionRaw = QRCorrection.m.rawValue
+
+    private var style: QRModuleStyle { QRModuleStyle(rawValue: styleRaw) ?? .square }
+    private var correction: QRCorrection { QRCorrection(rawValue: correctionRaw) ?? .m }
 
     private var qrImage: NSImage? {
-        let text = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, text.count <= 2000,
-              let filter = CIFilter(name: "CIQRCodeGenerator") else { return nil }
-        filter.setValue(Data(text.utf8), forKey: "inputMessage")
-        filter.setValue("M", forKey: "inputCorrectionLevel")
-        guard let output = filter.outputImage else { return nil }
-        let scaled = output.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
-        let image = NSImage(size: scaled.extent.size)
-        image.addRepresentation(NSCIImageRep(ciImage: scaled))
-        return image
+        Self.render(content, fg: fgColor, bg: bgColor,
+                    style: style, correction: correction, logo: logo)
     }
 
     var body: some View {
@@ -686,8 +729,9 @@ private struct QRTool: View {
                 .font(.system(size: 12.5))
                 .scrollContentBackground(.hidden)
                 .frame(height: 70)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+                .toolFieldStyle()
+
+            styleCard
 
             ZStack {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -714,12 +758,30 @@ private struct QRTool: View {
                     .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
             )
 
+            if lowContrast {
+                Text(l10n.t("Low contrast — scanning may fail."))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange)
+            }
+            if logo != nil, correction == .l || correction == .m {
+                Text(l10n.t("Use Q or H correction when adding a logo."))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange)
+            }
+
             if qrImage != nil {
                 Button {
                     guard let image = qrImage else { return }
                     let pb = NSPasteboard.general
                     pb.clearContents()
-                    pb.writeObjects([image])
+                    // Write PNG bytes so other apps get a real image file payload.
+                    if let tiff = image.tiffRepresentation,
+                       let rep = NSBitmapImageRep(data: tiff),
+                       let png = rep.representation(using: .png, properties: [:]) {
+                        pb.setData(png, forType: .png)
+                    } else {
+                        pb.writeObjects([image])
+                    }
                     copied = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { copied = false }
                 } label: {
@@ -730,7 +792,192 @@ private struct QRTool: View {
                 .buttonStyle(.bordered)
             }
         }
-        .frame(maxWidth: 520, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .fileImporter(isPresented: $pickingLogo, allowedContentTypes: [.image]) { result in
+            if case .success(let url) = result {
+                logo = NSImage(contentsOf: url)
+            }
+        }
+    }
+
+    /// Colors, module shape, error correction and the center logo.
+    private var styleCard: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 14) {
+                HStack(spacing: 6) {
+                    Text(l10n.t("Foreground"))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    ColorPicker("", selection: $fgColor, supportsOpacity: false)
+                        .labelsHidden()
+                        .fixedSize()
+                }
+                HStack(spacing: 6) {
+                    Text(l10n.t("Background"))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    ColorPicker("", selection: $bgColor, supportsOpacity: true)
+                        .labelsHidden()
+                        .fixedSize()
+                }
+                Spacer()
+                Text(l10n.t("Error Correction"))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Picker("", selection: $correctionRaw) {
+                    ForEach(QRCorrection.allCases) { level in
+                        Text(level.label).tag(level.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .fixedSize()
+            }
+            HStack(spacing: 10) {
+                Picker("", selection: $styleRaw) {
+                    ForEach(QRModuleStyle.allCases) { shape in
+                        Text(l10n.t(shape.labelKey)).tag(shape.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 190)
+                Spacer()
+                if let logo {
+                    Image(nsImage: logo)
+                        .resizable()
+                        .frame(width: 18, height: 18)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                Button(l10n.t("Choose Image…")) { pickingLogo = true }
+                    .controlSize(.small)
+                if logo != nil {
+                    Button {
+                        self.logo = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.red.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    .help(l10n.t("Remove Logo"))
+                }
+            }
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.primary.opacity(0.03))
+        )
+    }
+
+    /// Rough luminance check — QR scanners need a strong fg/bg contrast.
+    private var lowContrast: Bool {
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        let fg = NSColor(fgColor).usingColorSpace(.sRGB) ?? .black
+        let bg = NSColor(bgColor).usingColorSpace(.sRGB) ?? .white
+        guard bg.alphaComponent > 0.6 else { return false } // translucent bg: real backdrop unknown
+        func luminance(_ c: NSColor) -> Double {
+            0.2126 * Double(c.redComponent)
+                + 0.7152 * Double(c.greenComponent)
+                + 0.0722 * Double(c.blueComponent)
+        }
+        return abs(luminance(fg) - luminance(bg)) < 0.35
+    }
+
+    /// Builds the styled QR: the filter's raw black/white grid is read back
+    /// pixel by pixel, then redrawn in Core Graphics so module shape, colors,
+    /// quiet zone and logo are fully custom.
+    private static func render(_ text: String, fg: Color, bg: Color,
+                               style: QRModuleStyle, correction: QRCorrection,
+                               logo: NSImage?) -> NSImage? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.count <= 2000,
+              let filter = CIFilter(name: "CIQRCodeGenerator") else { return nil }
+        filter.setValue(Data(trimmed.utf8), forKey: "inputMessage")
+        filter.setValue(correction.rawValue, forKey: "inputCorrectionLevel")
+        guard let output = filter.outputImage,
+              let base = CIContext().createCGImage(output, from: output.extent) else { return nil }
+
+        let rep = NSBitmapImageRep(cgImage: base)
+        let cols = rep.pixelsWide, rows = rep.pixelsHigh
+
+        let scale: CGFloat = 12
+        let quiet: CGFloat = 4 * scale // standard 4-module quiet zone
+        let width = Int(CGFloat(cols) * scale + quiet * 2)
+        let height = Int(CGFloat(rows) * scale + quiet * 2)
+        guard let ctx = CGContext(data: nil, width: width, height: height,
+                                  bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+
+        let fgColor = NSColor(fg).usingColorSpace(.sRGB) ?? .black
+        let bgColor = NSColor(bg).usingColorSpace(.sRGB) ?? .white
+        if bgColor.alphaComponent > 0.01 {
+            ctx.setFillColor(bgColor.cgColor)
+            ctx.fill(CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
+        }
+        ctx.setFillColor(fgColor.cgColor)
+        for row in 0..<rows {
+            for col in 0..<cols {
+                guard isDark(rep, col, row) else { continue }
+                // Bitmap rows run top-down; Core Graphics is bottom-up.
+                let rect = CGRect(x: quiet + CGFloat(col) * scale,
+                                  y: quiet + CGFloat(rows - 1 - row) * scale,
+                                  width: scale, height: scale)
+                switch style {
+                case .square:
+                    ctx.fill(rect)
+                case .rounded:
+                    ctx.addPath(CGPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5),
+                                       cornerWidth: scale * 0.32, cornerHeight: scale * 0.32,
+                                       transform: nil))
+                    ctx.fillPath()
+                case .dot:
+                    let d = scale * 0.78
+                    ctx.addPath(CGPath(ellipseIn: CGRect(x: rect.midX - d / 2,
+                                                         y: rect.midY - d / 2,
+                                                         width: d, height: d),
+                                       transform: nil))
+                    ctx.fillPath()
+                }
+            }
+        }
+
+        // Center logo on a rounded plate punched over the modules.
+        if let logo, let logoCG = logo.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            let side = min(CGFloat(width), CGFloat(height)) * 0.2
+            let inner = CGRect(x: (CGFloat(width) - side) / 2,
+                               y: (CGFloat(height) - side) / 2,
+                               width: side, height: side)
+            let plate = inner.insetBy(dx: -side * 0.12, dy: -side * 0.12)
+            ctx.setFillColor((bgColor.alphaComponent > 0.5 ? bgColor : .white).cgColor)
+            ctx.addPath(CGPath(roundedRect: plate,
+                               cornerWidth: side * 0.15, cornerHeight: side * 0.15,
+                               transform: nil))
+            ctx.fillPath()
+            ctx.saveGState()
+            ctx.addPath(CGPath(roundedRect: inner,
+                               cornerWidth: side * 0.1, cornerHeight: side * 0.1,
+                               transform: nil))
+            ctx.clip()
+            // Aspect-fill: scale to cover, centered.
+            let coverScale = max(side / CGFloat(logoCG.width), side / CGFloat(logoCG.height))
+            let dw = CGFloat(logoCG.width) * coverScale
+            let dh = CGFloat(logoCG.height) * coverScale
+            ctx.draw(logoCG, in: CGRect(x: inner.midX - dw / 2, y: inner.midY - dh / 2,
+                                        width: dw, height: dh))
+            ctx.restoreGState()
+        }
+
+        guard let out = ctx.makeImage() else { return nil }
+        return NSImage(cgImage: out, size: NSSize(width: width, height: height))
+    }
+
+    private static func isDark(_ rep: NSBitmapImageRep, _ col: Int, _ row: Int) -> Bool {
+        guard let c = rep.colorAt(x: col, y: row) else { return false }
+        let srgb = c.usingColorSpace(.sRGB) ?? c
+        return srgb.alphaComponent > 0.5
+            && (srgb.redComponent + srgb.greenComponent + srgb.blueComponent) / 3 < 0.5
     }
 }
 
@@ -798,8 +1045,7 @@ private struct CodecTool: View {
                 .font(.system(size: 12.5, design: .monospaced))
                 .scrollContentBackground(.hidden)
                 .frame(height: 100)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+                .toolFieldStyle()
 
             if result.failed {
                 Text(l10n.t("Invalid input"))
@@ -828,11 +1074,10 @@ private struct CodecTool: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(height: 100)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+                .toolFieldStyle()
             }
         }
-        .frame(maxWidth: 520, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: Conversion (live)
@@ -1029,9 +1274,7 @@ private struct TimestampTool: View {
                 }
                 .controlSize(.small)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+            .toolFieldStyle()
 
             Text(l10n.t("Auto-detects seconds or milliseconds"))
                 .font(.system(size: 10.5))
@@ -1052,7 +1295,7 @@ private struct TimestampTool: View {
                 }
             }
         }
-        .frame(maxWidth: 520, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
