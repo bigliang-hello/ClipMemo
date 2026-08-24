@@ -26,28 +26,6 @@
     "⌘K" : {
 
     },
-    "All" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部"
-          }
-        }
-      }
-    },
-    "All clipboard history will be removed. This cannot be undone." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "所有剪贴板历史记录将被移除，此操作无法撤销。"
-          }
-        }
-      }
-    },
     "7 Days" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -92,123 +70,24 @@
         }
       }
     },
-    "Apps listed here are never recorded." : {
+    "All" : {
       "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "列在这里的应用不会被记录到历史。"
+            "value" : "全部"
           }
         }
       }
     },
-    "Auto-delete after" : {
+    "All clipboard history will be removed. This cannot be undone." : {
       "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自动清理"
-          }
-        }
-      }
-    },
-    "Clear filter" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除筛选"
-          }
-        }
-      }
-    },
-    "Edit" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "编辑"
-          }
-        }
-      }
-    },
-    "Exclude %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不再记录 %@"
-          }
-        }
-      }
-    },
-    "Filter by this app" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "按此应用筛选"
-          }
-        }
-      }
-    },
-    "From %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "来自 %@"
-          }
-        }
-      }
-    },
-    "Never" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "从不"
-          }
-        }
-      }
-    },
-    "Recording Exclusions" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "排除的应用"
-          }
-        }
-      }
-    },
-    "Save" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存"
-          }
-        }
-      }
-    },
-    "Type to search, ↑↓ to select, ⏎ paste, ⌥⏎ plain text" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "输入搜索，↑↓ 选择，⏎ 粘贴，⌥⏎ 纯文本"
+            "value" : "所有剪贴板历史记录将被移除，此操作无法撤销。"
           }
         }
       }
@@ -231,6 +110,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有记录仅保存在本机，不会上传任何内容。"
+          }
+        }
+      }
+    },
+    "Apps listed here are never recorded." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列在这里的应用不会被记录到历史。"
+          }
+        }
+      }
+    },
+    "Auto-delete after" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动清理"
+          }
+        }
+      }
+    },
+    "Auto-detects seconds or milliseconds" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动识别秒 / 毫秒"
+          }
+        }
+      }
+    },
+    "Back" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回"
+          }
+        }
+      }
+    },
+    "Base64" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base64 编解码"
           }
         }
       }
@@ -279,6 +213,17 @@
         }
       }
     },
+    "Clear filter" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除筛选"
+          }
+        }
+      }
+    },
     "Clear History" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -318,6 +263,50 @@
         }
       }
     },
+    "Color Converter" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "颜色格式转换"
+          }
+        }
+      }
+    },
+    "Content" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内容"
+          }
+        }
+      }
+    },
+    "Convert between HEX, RGB, HSL and more." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HEX / RGB / HSL 等格式互转。"
+          }
+        }
+      }
+    },
+    "Convert Unix timestamps to readable dates." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unix 时间戳与日期互转。"
+          }
+        }
+      }
+    },
     "Copied to clipboard" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -340,6 +329,17 @@
         }
       }
     },
+    "Copy Image" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制图片"
+          }
+        }
+      }
+    },
     "Copy Latest Item" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -358,6 +358,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制的内容会自动出现在这里。"
+          }
+        }
+      }
+    },
+    "Decode" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解码"
           }
         }
       }
@@ -395,6 +406,39 @@
         }
       }
     },
+    "Edit" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑"
+          }
+        }
+      }
+    },
+    "Encode" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编码"
+          }
+        }
+      }
+    },
+    "Encode or decode Base64 text." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编码或解码 Base64 文本。"
+          }
+        }
+      }
+    },
     "English" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -402,6 +446,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "English"
+          }
+        }
+      }
+    },
+    "Enter a color (HEX, rgb()…)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入颜色值(HEX、rgb() 等)"
           }
         }
       }
@@ -416,6 +471,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Excel 表格"
+          }
+        }
+      }
+    },
+    "Exclude %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不再记录 %@"
           }
         }
       }
@@ -442,6 +508,17 @@
         }
       }
     },
+    "Filter by this app" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按此应用筛选"
+          }
+        }
+      }
+    },
     "Follow System" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -449,6 +526,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跟随系统"
+          }
+        }
+      }
+    },
+    "From %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自 %@"
           }
         }
       }
@@ -541,6 +629,50 @@
         }
       }
     },
+    "Input" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入"
+          }
+        }
+      }
+    },
+    "Invalid Base64 input" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无效的 Base64 输入"
+          }
+        }
+      }
+    },
+    "Invalid color" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法识别的颜色"
+          }
+        }
+      }
+    },
+    "Invalid timestamp or date" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法识别的时间戳或日期"
+          }
+        }
+      }
+    },
     "Language" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -559,6 +691,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登录时启动"
+          }
+        }
+      }
+    },
+    "Local Time" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地时间"
+          }
+        }
+      }
+    },
+    "Milliseconds" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毫秒"
+          }
+        }
+      }
+    },
+    "Never" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从不"
           }
         }
       }
@@ -596,6 +761,17 @@
         }
       }
     },
+    "Now" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此刻"
+          }
+        }
+      }
+    },
     "Number of items to keep" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -629,6 +805,28 @@
         }
       }
     },
+    "Output" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输出"
+          }
+        }
+      }
+    },
+    "Paste" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "粘贴"
+          }
+        }
+      }
+    },
     "Pause Monitoring (Privacy Mode)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -658,6 +856,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "PDF 文档"
+          }
+        }
+      }
+    },
+    "Pick Color from Screen" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕取色"
           }
         }
       }
@@ -761,6 +970,17 @@
         }
       }
     },
+    "QR Code" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "二维码"
+          }
+        }
+      }
+    },
     "Quick Paste" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -779,6 +999,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出 ClipMemo"
+          }
+        }
+      }
+    },
+    "Recording Exclusions" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排除的应用"
           }
         }
       }
@@ -805,6 +1036,17 @@
         }
       }
     },
+    "Save" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        }
+      }
+    },
     "Search clipboard" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -812,6 +1054,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索剪贴板"
+          }
+        }
+      }
+    },
+    "Seconds" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秒"
           }
         }
       }
@@ -893,6 +1146,17 @@
         }
       }
     },
+    "Small utilities for clipboard content." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剪贴板内容的小工具集。"
+          }
+        }
+      }
+    },
     "Storage" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -951,6 +1215,28 @@
         }
       }
     },
+    "Text or URL to encode" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要编码的文本或链接"
+          }
+        }
+      }
+    },
+    "Text to translate" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要翻译的文本"
+          }
+        }
+      }
+    },
     "The oldest unpinned records are removed first. Pinned records are always kept." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -973,6 +1259,17 @@
         }
       }
     },
+    "Timestamp" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时间戳转换"
+          }
+        }
+      }
+    },
     "Today" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -980,6 +1277,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "今天"
+          }
+        }
+      }
+    },
+    "Toolbox" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工具箱"
+          }
+        }
+      }
+    },
+    "Translate" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译"
+          }
+        }
+      }
+    },
+    "Translate Text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文本翻译"
+          }
+        }
+      }
+    },
+    "Translate with the system translation engine." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调用系统翻译引擎。"
+          }
+        }
+      }
+    },
+    "Translated text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译结果"
+          }
+        }
+      }
+    },
+    "Translation failed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译失败"
           }
         }
       }
@@ -995,6 +1358,28 @@
         }
       }
     },
+    "Turn text or links into a scannable code." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将文本或链接生成为二维码。"
+          }
+        }
+      }
+    },
+    "Type to search, ↑↓ to select, ⏎ paste, ⌥⏎ plain text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入搜索，↑↓ 选择，⏎ 粘贴，⌥⏎ 纯文本"
+          }
+        }
+      }
+    },
     "Type to search, ↑↓ to select, ⏎ to paste" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1002,6 +1387,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "输入搜索，↑↓ 选择，⏎ 粘贴"
+          }
+        }
+      }
+    },
+    "Unix Timestamp" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unix 时间戳"
           }
         }
       }

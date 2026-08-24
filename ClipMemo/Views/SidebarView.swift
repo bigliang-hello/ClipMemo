@@ -46,9 +46,16 @@ enum ClipFilter: String, CaseIterable, Identifiable {
 struct SidebarView: View {
     @Binding var selection: ClipFilter
     let counts: [ClipFilter: Int]
+    var isToolboxActive: Bool = false
+    var onToolbox: () -> Void = {}
+    /// Fired on every category tap (even a re-tap of the selected one) so the
+    /// owner can leave modes like the toolbox — a plain binding change can't
+    /// express "clicked the already-selected row".
+    var onCategoryPick: () -> Void = {}
     var onSettings: () -> Void
 
     @State private var settingsHover = false
+    @State private var toolboxHover = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -85,11 +92,39 @@ struct SidebarView: View {
                 ForEach(ClipFilter.allCases) { filter in
                     SidebarRow(filter: filter,
                                count: counts[filter] ?? 0,
-                               isSelected: selection == filter) {
+                               isSelected: selection == filter && !isToolboxActive) {
                         selection = filter
+                        onCategoryPick()
                     }
                 }
             }
+            .padding(.horizontal, 8)
+
+            // Toolbox entry
+            Divider()
+                .padding(.horizontal, 14)
+                .padding(.top, 8)
+                .padding(.bottom, 6)
+            HStack(spacing: 8) {
+                Image(systemName: "toolbox")
+                    .font(.system(size: 11, weight: .semibold))
+                    .frame(width: 22)
+                Text(L10n.shared.t("Toolbox"))
+                    .font(.system(size: 12, weight: isToolboxActive ? .semibold : .regular))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer(minLength: 4)
+            }
+            .foregroundStyle(isToolboxActive ? Color.blue : Color.primary.opacity(0.75))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(isToolboxActive ? Color.blue.opacity(0.13) : (toolboxHover ? Color.primary.opacity(0.04) : .clear))
+            )
+            .contentShape(Rectangle())
+            .onTapGesture { onToolbox() }
+            .onHover { toolboxHover = $0 }
             .padding(.horizontal, 8)
 
             Spacer()

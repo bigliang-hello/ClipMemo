@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var toastMessage: String?
     @State private var toastTask: Task<Void, Never>?
     @State private var showSettings = false
+    @State private var showToolbox = false
     @State private var previewItem: ClipboardItem?
     @FocusState private var searchFocused: Bool
     @Environment(\.openWindow) private var openWindow
@@ -18,10 +19,18 @@ struct ContentView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            SidebarView(selection: $activeFilter, counts: counts) {
+            SidebarView(selection: $activeFilter, counts: counts,
+                        isToolboxActive: showToolbox,
+                        onToolbox: { showToolbox = true },
+                        onCategoryPick: { showToolbox = false }) {
                 showSettings = true
             }
-            mainArea
+            if showToolbox {
+                ToolboxView()
+                    .id(l10n.language)
+            } else {
+                mainArea
+            }
         }
         .id(l10n.language) // rebuild the tree when the in-app language changes
         .environment(\.locale, l10n.locale)
