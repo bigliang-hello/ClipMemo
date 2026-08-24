@@ -106,7 +106,7 @@ struct SidebarView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 6)
             HStack(spacing: 8) {
-                Image(systemName: "toolbox")
+                Image(systemName: "wrench.and.screwdriver")
                     .font(.system(size: 11, weight: .semibold))
                     .frame(width: 22)
                 Text(L10n.shared.t("Toolbox"))
