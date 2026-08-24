@@ -56,6 +56,9 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .showClipMemoSettings)) { _ in
             showSettings = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .showClipMemoToolbox)) { _ in
+            showToolbox = true
+        }
         .onAppear { WindowOpener.openMain = { openWindow(id: "main") } }
     }
 
@@ -273,4 +276,5 @@ struct ContentView: View {
 extension Notification.Name {
     static let showClipMemoSettings = Notification.Name("showClipMemoSettings")
     static let showClipMemoWindow = Notification.Name("showClipMemoWindow")
+    static let showClipMemoToolbox = Notification.Name("showClipMemoToolbox")
 }

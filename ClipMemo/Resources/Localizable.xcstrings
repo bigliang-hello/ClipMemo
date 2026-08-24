@@ -925,6 +925,16 @@
         }
       }
     },
+    "Open Toolbox" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开工具箱"
+          }
+        }
+      }
+    },
     "Output" : {
       "extractionState" : "stale",
       "localizations" : {

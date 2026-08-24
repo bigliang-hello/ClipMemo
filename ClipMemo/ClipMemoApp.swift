@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import Carbon.HIToolbox
 
 /// Lets non-view code (hotkey, menu bar) reopen the main SwiftUI window.
 @MainActor
@@ -48,8 +49,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         ClipboardMonitorHolder.monitor.start()
 
-        HotKeyManager.shared.register {
+        HotKeyManager.shared.register(id: 1, keyCode: kVK_ANSI_V, modifiers: cmdKey | shiftKey) {
             QuickPasteController.shared.togglePanel()
+        }
+        HotKeyManager.shared.register(id: 2, keyCode: kVK_ANSI_T, modifiers: cmdKey | shiftKey) {
+            WindowOpener.showMainWindow()
+            // Give a freshly (re)created window a moment to subscribe first.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                NotificationCenter.default.post(name: .showClipMemoToolbox, object: nil)
+            }
         }
     }
 
@@ -93,6 +101,11 @@ struct ClipMemoApp: App {
                     Button(l10n.t("Show ClipMemo")) {
                         WindowOpener.showMainWindow()
                     }
+                    Button(l10n.t("Open Toolbox")) {
+                        WindowOpener.showMainWindow()
+                        NotificationCenter.default.post(name: .showClipMemoToolbox, object: nil)
+                    }
+                    .keyboardShortcut("t", modifiers: [.command, .shift])
                 }
                 .id(appLanguage) // rebuild menu items when the language changes
             }
@@ -131,6 +144,10 @@ private struct MenuBarMenu: View {
     var body: some View {
         Button(l10n.t("Show ClipMemo")) { WindowOpener.showMainWindow() }
         Button(l10n.t("Quick Paste")) { QuickPasteController.shared.togglePanel() }
+        Button(l10n.t("Open Toolbox")) {
+            WindowOpener.showMainWindow()
+            NotificationCenter.default.post(name: .showClipMemoToolbox, object: nil)
+        }
         Divider()
         Button(monitor.isPaused ? l10n.t("Resume Monitoring") : l10n.t("Pause Monitoring (Privacy Mode)")) {
             monitor.isPaused.toggle()

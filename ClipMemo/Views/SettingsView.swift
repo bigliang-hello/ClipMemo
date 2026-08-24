@@ -131,6 +131,15 @@ struct SettingsView: View {
                                 .padding(.vertical, 3)
                                 .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.06)))
                         }
+                        HStack {
+                            Text(l10n.t("Open Toolbox")).font(.system(size: 12))
+                            Spacer()
+                            Text("⌘⇧T")
+                                .font(.system(size: 11, weight: .medium))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.06)))
+                        }
                     }
                 }
                 .padding(16)
