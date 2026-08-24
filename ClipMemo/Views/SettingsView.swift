@@ -8,6 +8,7 @@ struct SettingsView: View {
     @ObservedObject private var l10n = L10n.shared
 
     @AppStorage("historyLimit") private var historyLimit = 500
+    @AppStorage("ocrEnabled") private var ocrEnabled = true
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
     @State private var iCloudSync = UserDefaults.standard.bool(forKey: "iCloudSyncEnabled")
@@ -77,6 +78,8 @@ struct SettingsView: View {
                             }
                         }
                         footnote(l10n.t("The oldest unpinned records are removed first. Pinned records are always kept."))
+                        toggleRow(l10n.t("Recognize text in images (OCR)"), isOn: $ocrEnabled)
+                        footnote(l10n.t("Recognized text is stored locally and makes images searchable."))
                     }
                     card("Privacy") {
                         toggleRow(l10n.t("Privacy mode (pause monitoring)"), isOn: $monitor.isPaused)

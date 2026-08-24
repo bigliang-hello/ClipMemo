@@ -48,7 +48,7 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return Array(all.prefix(50)) }
         let matched = all.filter { item in
-            let haystack = [item.titleLine, item.subtitleLine, item.text ?? ""]
+            let haystack = [item.titleLine, item.subtitleLine, item.text ?? "", item.ocrText ?? ""]
                 .joined(separator: "\n")
             return haystack.localizedCaseInsensitiveContains(q)
         }

@@ -10,6 +10,7 @@
 		<attribute name="imageData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
 		<attribute name="isPinned" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
 		<attribute name="rtfData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+		<attribute name="ocrText" optional="YES" attributeType="String"/>
 		<attribute name="sourceAppName" optional="YES" attributeType="String"/>
 		<attribute name="sourceBundleID" optional="YES" attributeType="String"/>
 		<attribute name="text" optional="YES" attributeType="String"/>

@@ -18,6 +18,7 @@ final class ClipboardRecord: NSManagedObject {
     @NSManaged var createdAt: Date?
     @NSManaged var sourceBundleID: String?
     @NSManaged var sourceAppName: String?
+    @NSManaged var ocrText: String?
 
     @nonobjc static func fetchRequest() -> NSFetchRequest<ClipboardRecord> {
         NSFetchRequest<ClipboardRecord>(entityName: "ClipboardRecord")
@@ -40,6 +41,7 @@ extension ClipboardRecord {
             fileURLPath: fileURLPath,
             sourceBundleID: sourceBundleID,
             sourceAppName: sourceAppName,
+            ocrText: ocrText,
             isPinned: isPinned,
             createdAt: createdAt ?? Date()
         )
@@ -60,5 +62,6 @@ extension ClipboardRecord {
         createdAt = item.createdAt
         sourceBundleID = item.sourceBundleID
         sourceAppName = item.sourceAppName
+        ocrText = item.ocrText
     }
 }

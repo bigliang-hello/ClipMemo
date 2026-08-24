@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import CoreData
 import UniformTypeIdentifiers
+import Vision
 
 // MARK: - Types
 
@@ -24,6 +25,7 @@ struct ClipboardItem: Identifiable, Codable, Equatable {
     var fileURLPath: String?          // original path (file records)
     var sourceBundleID: String?       // app the clip was copied from
     var sourceAppName: String?
+    var ocrText: String?              // text recognized in images (Vision)
     var isPinned: Bool = false
     var createdAt: Date = Date()
 }
@@ -48,6 +50,10 @@ extension ClipboardItem {
         let l = L10n.shared
         switch type {
         case .image:
+            // A snippet of the recognized text doubles as a searchability cue.
+            if let line = ocrText?.firstNonEmptyLine, !line.isEmpty {
+                return String(line.prefix(60))
+            }
             return "\(l.t(fileKind ?? "Image")) · \(formattedSize)"
         case .file:
             return "\(l.t(fileKind ?? "File")) · \(formattedSize)"
@@ -73,7 +79,7 @@ extension ClipboardItem {
 
     /// A plain-text payload used for search, sharing and fallback copy.
     var searchText: String {
-        [text, fileName, fileKind, fileURLPath, sourceAppName]
+        [text, fileName, fileKind, fileURLPath, sourceAppName, ocrText]
             .compactMap { $0 }
             .joined(separator: " ")
             .lowercased()
@@ -324,6 +330,51 @@ final class HistoryStore: ObservableObject {
         } catch {
             return nil
         }
+    }
+
+    // MARK: OCR (Vision)
+
+    /// Settings toggle — on by default.
+    var ocrEnabled: Bool {
+        UserDefaults.standard.object(forKey: "ocrEnabled") == nil
+            || UserDefaults.standard.bool(forKey: "ocrEnabled")
+    }
+
+    /// Runs Vision text recognition on a freshly captured image in the
+    /// background and stores the result so the record becomes searchable.
+    func performOCR(for item: ClipboardItem) {
+        guard ocrEnabled, item.type == .image,
+              let data = record(for: item.id)?.imageData else { return }
+        let id = item.id
+        Task.detached(priority: .utility) { [weak self] in
+            let text = Self.recognizeText(in: data)
+            await self?.storeOCRText(text, for: id)
+        }
+    }
+
+    private func storeOCRText(_ text: String, for id: UUID) {
+        guard let record = record(for: id) else { return } // deleted meanwhile
+        record.ocrText = text.isEmpty ? nil : text
+        try? viewContext.save()
+        refetch()
+    }
+
+    /// Pure Vision call — runs entirely off the main actor, fully offline.
+    nonisolated private static func recognizeText(in data: Data) -> String {
+        guard let image = NSImage(data: data),
+              let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return "" }
+        var recognized = ""
+        let request = VNRecognizeTextRequest { request, _ in
+            let observations = request.results as? [VNRecognizedTextObservation] ?? []
+            recognized = observations
+                .compactMap { $0.topCandidates(1).first?.string }
+                .joined(separator: "\n")
+        }
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["zh-Hans", "en-US"] // Chinese + English mixed
+        request.usesLanguageCorrection = true
+        try? VNImageRequestHandler(cgImage: cg, options: [:]).perform([request])
+        return recognized
     }
 
     // MARK: iCloud toggle (Settings)

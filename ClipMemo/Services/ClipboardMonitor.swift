@@ -149,6 +149,7 @@ final class ClipboardMonitor: ObservableObject {
         item.sourceBundleID = sourceBundleID
         item.sourceAppName = sourceName
         store.add(item, imageBytes: pngData)
+        store.performOCR(for: item)
     }
 
     private func captureFile(url: URL, urls: [URL], pasteboard pb: NSPasteboard,
@@ -172,6 +173,7 @@ final class ClipboardMonitor: ObservableObject {
             item.sourceBundleID = sourceBundleID
             item.sourceAppName = sourceName
             store.add(item, imageBytes: data)
+            store.performOCR(for: item)
             return
         }
 

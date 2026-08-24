@@ -131,14 +131,32 @@ struct DetailPreviewView: View {
     private var payloadView: some View {
         switch item.type {
         case .image:
-            if let image = ImageCache.image(for: item) {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
-            } else {
-                Text(L10n.shared.t("Image unavailable")).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 12) {
+                if let image = ImageCache.image(for: item) {
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+                } else {
+                    Text(L10n.shared.t("Image unavailable")).foregroundStyle(.secondary)
+                }
+                if let ocr = item.ocrText, !ocr.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(L10n.shared.t("Recognized Text"))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        ScrollView {
+                            Text(ocr)
+                                .font(.system(size: 12))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(maxHeight: 120)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+                    }
+                }
             }
         case .code:
             VStack(alignment: .leading, spacing: 4) {

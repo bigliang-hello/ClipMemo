@@ -1075,6 +1075,36 @@
         }
       }
     },
+    "Recognize text in images (OCR)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制图片时自动识别文字(OCR)"
+          }
+        }
+      }
+    },
+    "Recognized Text" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "识别文字"
+          }
+        }
+      }
+    },
+    "Recognized text is stored locally and makes images searchable." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "识别文字仅保存在本地,让图片可以按内容搜索。"
+          }
+        }
+      }
+    },
     "Recording Exclusions" : {
       "extractionState" : "stale",
       "localizations" : {
