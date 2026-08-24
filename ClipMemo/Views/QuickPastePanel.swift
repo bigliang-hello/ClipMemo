@@ -117,8 +117,10 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
                     let steps = Int(self.wheelAccum)
                     self.wheelAccum -= CGFloat(steps)
                     // scroll up ⇢ previous row; clamp instead of wrapping so
-                    // the wheel stops at the ends like a normal list
-                    self.moveSelection(-steps, wraps: false)
+                    // the wheel stops at the ends like a normal list. In grid
+                    // layout one step is a whole row of cells.
+                    let stride = self.isGridLayout ? Self.gridColumns : 1
+                    self.moveSelection(-steps * stride, wraps: false)
                 }
                 return nil
             }
@@ -141,6 +143,27 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
         }
         RunLoop.main.add(timer, forMode: .common)
         permissionTimer = timer
+    }
+
+    /// Key codes from the panel: -2 left, 2 right, -1 up, 1 down. In grid
+    /// layout horizontal moves step one cell, vertical moves one full row.
+    func navigate(_ code: Int) {
+        if isGridLayout {
+            switch code {
+            case -2: moveSelection(-1, wraps: false)
+            case 2: moveSelection(1, wraps: false)
+            case -1: moveSelection(-Self.gridColumns, wraps: false)
+            case 1: moveSelection(Self.gridColumns, wraps: false)
+            default: break
+            }
+        } else if code == -1 || code == 1 {
+            moveSelection(code)
+        }
+    }
+
+    static let gridColumns = 5
+    var isGridLayout: Bool {
+        UserDefaults.standard.string(forKey: "quickPasteLayout") == "grid"
     }
 
     func moveSelection(_ delta: Int, wraps: Bool = true) {
@@ -212,7 +235,7 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
 
     private func makePanel() -> QuickPanel {
         let p = QuickPanel(
-            contentRect: NSRect(origin: .zero, size: NSSize(width: 400, height: 380)),
+            contentRect: NSRect(origin: .zero, size: NSSize(width: 532, height: 506)),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered, defer: false
         )
@@ -273,6 +296,8 @@ nonisolated final class QuickPanel: NSPanel {
             switch event.keyCode {
             case 125: onNavigate?(1); return   // down arrow
             case 126: onNavigate?(-1); return  // up arrow
+            case 123: onNavigate?(-2); return  // left arrow (grid)
+            case 124: onNavigate?(2); return   // right arrow (grid)
             case 53: onCancel?(); return       // escape
             case 36, 76:                       // return / enter
                 onConfirm?(event.modifierFlags.contains(.command),
@@ -292,6 +317,7 @@ private struct QuickPasteView: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var store = HistoryStore.shared
     @FocusState private var searchFocused: Bool
+    @AppStorage("quickPasteLayout") private var quickLayout = "list"
 
     var body: some View {
         let items = controller.filteredItems
@@ -300,13 +326,13 @@ private struct QuickPasteView: View {
         // row is selected, and collapses back when the selection moves on.
         HStack(spacing: 0) {
             listColumn(items)
-                .frame(width: 400)
+                .frame(width: 532)
             if let previewImage = selectedPreviewImage(in: items) {
                 Divider()
                 previewColumn(previewImage)
             }
         }
-        .frame(height: 380)
+        .frame(height: 506)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
@@ -338,7 +364,7 @@ private struct QuickPasteView: View {
                 .foregroundStyle(.tertiary)
                 .padding(.bottom, 8)
         }
-        .frame(width: 220)
+        .frame(width: 390)
     }
 
     /// True pixel dimensions of the image (points can be scaled on retina).
@@ -381,26 +407,24 @@ private struct QuickPasteView: View {
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 2) {
+                    Group {
                         if items.isEmpty {
                             Text(l10n.t("Try a different search term or filter."))
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                                 .padding(.vertical, 28)
                                 .frame(maxWidth: .infinity)
-                        }
-                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                            QuickRow(item: item, isSelected: index == controller.selectionIndex)
-                                .id(item.id)
-                                .onTapGesture {
-                                    controller.selectionIndex = index
-                                    controller.confirmSelection()
-                                }
-                                .onHover { hover in
-                                    guard hover, controller.selectionHoverEligible else { return }
-                                    controller.selectionFromHover = true
-                                    controller.selectionIndex = index
-                                }
+                        } else if quickLayout == "grid" {
+                            // Grid tiles trade the text subtitle for a much
+                            // larger image preview.
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8),
+                                                     count: 5), spacing: 8) {
+                                cells(items)
+                            }
+                        } else {
+                            LazyVStack(spacing: 2) {
+                                cells(items)
+                            }
                         }
                     }
                     .padding(6)
@@ -424,6 +448,14 @@ private struct QuickPasteView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button {
+                    quickLayout = quickLayout == "grid" ? "list" : "grid"
+                } label: {
+                    Image(systemName: quickLayout == "grid" ? "list.bullet" : "square.grid.2x2")
+                }
+                .controlSize(.small)
+                .buttonStyle(.borderless)
+                .help(l10n.t(quickLayout == "grid" ? "List View" : "Grid View"))
                 Button(l10n.t("Full History…")) {
                     controller.confirmSelection(openFullWindow: true)
                 }
@@ -432,6 +464,30 @@ private struct QuickPasteView: View {
             .font(.system(size: 10))
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+        }
+    }
+
+    /// Rows or grid tiles sharing the same selection, tap and hover wiring.
+    @ViewBuilder
+    private func cells(_ items: [ClipboardItem]) -> some View {
+        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+            Group {
+                if quickLayout == "grid" {
+                    QuickGridCell(item: item, isSelected: index == controller.selectionIndex)
+                } else {
+                    QuickRow(item: item, isSelected: index == controller.selectionIndex)
+                }
+            }
+            .id(item.id)
+            .onTapGesture {
+                controller.selectionIndex = index
+                controller.confirmSelection()
+            }
+            .onHover { hover in
+                guard hover, controller.selectionHoverEligible else { return }
+                controller.selectionFromHover = true
+                controller.selectionIndex = index
+            }
         }
     }
 
@@ -530,6 +586,91 @@ private struct QuickRow: View {
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(badgeColor)
             }
+        }
+    }
+
+    private var iconName: String {
+        switch item.type {
+        case .text: return "doc.plaintext"
+        case .code: return "chevron.left.forwardslash.chevron.right"
+        case .image: return "photo"
+        case .file: return "doc"
+        }
+    }
+
+    private var badgeColor: Color {
+        switch item.type {
+        case .text: return .blue
+        case .code: return .green
+        case .image: return .orange
+        case .file: return .purple
+        }
+    }
+}
+
+/// Grid-layout tile: images get a real thumbnail area (the point of the grid),
+/// other types fall back to an enlarged colored glyph badge.
+private struct QuickGridCell: View {
+    let item: ClipboardItem
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: 4) {
+            content
+            Text(item.titleLine)
+                .font(.system(size: 9.5))
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(5)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isSelected ? Color.blue.opacity(0.13) : .clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(isSelected ? Color.blue.opacity(0.5) : .clear, lineWidth: 1)
+        )
+        .overlay(alignment: .topTrailing) {
+            if item.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 7))
+                    .foregroundStyle(.blue)
+                    .padding(5)
+            }
+        }
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if item.type == .image, let nsImage = ImageCache.image(for: item) {
+            // The footprint comes from the plain shape (frames alone, no
+            // image-driven sizing); the fill-scaled image only draws on top
+            // and the clipShape crops it — otherwise a wide image makes the
+            // tile overflow its grid track sideways.
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color.primary.opacity(0.05))
+                .frame(height: 66)
+                .frame(maxWidth: .infinity)
+                .overlay {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(badgeColor.opacity(0.12))
+                Image(systemName: iconName)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(badgeColor)
+            }
+            .frame(height: 66)
+            .frame(maxWidth: .infinity)
         }
     }
 

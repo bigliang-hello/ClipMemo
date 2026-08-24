@@ -16,6 +16,7 @@ struct ContentView: View {
     @FocusState private var searchFocused: Bool
     @Environment(\.openWindow) private var openWindow
     @ObservedObject private var l10n = L10n.shared
+    @AppStorage("mainLayout") private var mainLayout = "list"
 
     var body: some View {
         HStack(spacing: 0) {
@@ -75,6 +76,7 @@ struct ContentView: View {
                     }
                     Spacer()
                     privacyBadge
+                    layoutToggleButton
                     clearButton
                 }
             }
@@ -91,8 +93,17 @@ struct ContentView: View {
                     LazyVStack(alignment: .leading, spacing: 6) {
                         ForEach(filteredGroups, id: \.0) { section, sectionItems in
                             sectionHeader(section)
-                            ForEach(sectionItems) { item in
-                                card(for: item)
+                            if mainLayout == "grid" {
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)],
+                                          spacing: 10) {
+                                    ForEach(sectionItems) { item in
+                                        gridCell(for: item)
+                                    }
+                                }
+                            } else {
+                                ForEach(sectionItems) { item in
+                                    card(for: item)
+                                }
                             }
                         }
                     }
@@ -110,6 +121,22 @@ struct ContentView: View {
             .padding(.leading, 4)
             .padding(.top, 10)
             .padding(.bottom, 4)
+    }
+
+    private func gridCell(for item: ClipboardItem) -> some View {
+        MainGridCell(
+            item: item,
+            isSelected: selectedID == item.id,
+            onSelect: { selectedID = item.id },
+            onCopy: { copy(item) },
+            onDelete: {
+                guard ConfirmDialog.deleteRecord() else { return }
+                if selectedID == item.id { selectedID = nil }
+                store.remove(item.id)
+            },
+            onPreview: { previewItem = item },
+            onTogglePin: { store.togglePin(item.id) }
+        )
     }
 
     private func card(for item: ClipboardItem) -> some View {
@@ -196,6 +223,21 @@ struct ContentView: View {
         .help(L10n.shared.t("Clear all history"))
     }
 
+    /// List ⇄ grid switch for the main history area.
+    private var layoutToggleButton: some View {
+        Button {
+            mainLayout = mainLayout == "grid" ? "list" : "grid"
+        } label: {
+            Image(systemName: mainLayout == "grid" ? "list.bullet" : "square.grid.2x2")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 26, height: 26)
+                .background(Circle().fill(Color.primary.opacity(0.05)))
+        }
+        .buttonStyle(.plain)
+        .help(L10n.shared.t(mainLayout == "grid" ? "List View" : "Grid View"))
+    }
+
     private var emptyState: some View {
         let l = L10n.shared
         return VStack(spacing: 12) {
@@ -269,6 +311,210 @@ struct ContentView: View {
             ToastView(message: message)
                 .padding(.bottom, 18)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+}
+
+/// Grid-layout tile for the main window: images get a large preview (the
+/// point of the grid), text/code a multi-line snippet, files a document
+/// badge. Single tap selects, double tap copies — and hover reveals the same
+/// actions the record card shows (copy / preview / share / delete / pin).
+private struct MainGridCell: View {
+    let item: ClipboardItem
+    let isSelected: Bool
+    var onSelect: () -> Void
+    var onCopy: () -> Void
+    var onDelete: () -> Void
+    var onPreview: () -> Void
+    var onTogglePin: () -> Void
+
+    @State private var hover = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            content
+                .overlay(alignment: .bottomTrailing) {
+                    if hover {
+                        hoverActions
+                            .transition(.opacity)
+                    }
+                }
+            footer
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isSelected ? Color.blue.opacity(0.08) : Color.primary.opacity(0.03))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(isSelected ? Color.blue.opacity(0.5) : .clear, lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) { onCopy() }
+        .onTapGesture(count: 1) { onSelect() }
+        .onHover { hover = $0 }
+        .animation(.easeOut(duration: 0.12), value: hover)
+        .contextMenu {
+            Button(L10n.shared.t("Copy")) { onCopy() }
+            Button(L10n.shared.t(item.isPinned ? "Unpin" : "Pin")) { onTogglePin() }
+            Button(L10n.shared.t("Preview")) { onPreview() }
+            if let bid = item.sourceBundleID, let name = item.sourceAppName {
+                Divider()
+                Button(String(format: L10n.shared.t("Exclude %@"), name)) {
+                    ExclusionList.add(bid)
+                }
+            }
+            Divider()
+            Button(L10n.shared.t("Delete"), role: .destructive) { onDelete() }
+        }
+    }
+
+    /// Compact action bar fading in over the thumbnail — the grid counterpart
+    /// of the record card's trailing buttons.
+    private var hoverActions: some View {
+        let l = L10n.shared
+        return HStack(spacing: 3) {
+            actionIcon("doc.on.doc", help: l.t("Copy")) { onCopy() }
+            actionIcon("eye", help: l.t("Preview")) { onPreview() }
+            shareButton
+            actionIcon("trash", help: l.t("Delete"), color: .red) { onDelete() }
+        }
+        .padding(3)
+        .background(Capsule().fill(.regularMaterial))
+        .overlay(Capsule().strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5))
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch item.type {
+        case .image:
+            if let nsImage = ImageCache.image(for: item) {
+                // Shape-driven footprint with the image drawn on top and
+                // cropped — keeps wide images inside the grid track.
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color.primary.opacity(0.05))
+                    .frame(height: 96)
+                    .frame(maxWidth: .infinity)
+                    .overlay {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            } else {
+                typePlaceholder("photo", color: .gray)
+            }
+        case .file:
+            typePlaceholder("doc.fill", color: .purple)
+        case .code:
+            snippet(monospaced: true)
+        case .text:
+            snippet(monospaced: false)
+        }
+    }
+
+    /// Multi-line text preview keeping every tile in a row the same height.
+    private func snippet(monospaced: Bool) -> some View {
+        Text(item.text ?? item.titleLine)
+            .font(.system(size: monospaced ? 10.5 : 11.5,
+                          design: monospaced ? .monospaced : .default))
+            .lineLimit(4)
+            .truncationMode(.tail)
+            .frame(maxWidth: .infinity, minHeight: 96, maxHeight: 96, alignment: .topLeading)
+            .padding(6)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color.primary.opacity(0.04))
+            )
+    }
+
+    private func typePlaceholder(_ symbol: String, color: Color) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(color.opacity(0.10))
+            Image(systemName: symbol)
+                .font(.system(size: 24, weight: .medium))
+                .foregroundStyle(color)
+        }
+        .frame(height: 96)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var footer: some View {
+        HStack(spacing: 4) {
+            Image(systemName: typeIcon)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(typeColor)
+            Text(item.titleLine)
+                .font(.system(size: 10.5))
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 2)
+            Button(action: onTogglePin) {
+                Image(systemName: item.isPinned ? "pin.fill" : "pin")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundColor(item.isPinned ? .blue : .secondary)
+                    .opacity(item.isPinned || hover ? 1 : 0.45)
+            }
+            .buttonStyle(.plain)
+            .help(L10n.shared.t(item.isPinned ? "Unpin" : "Pin"))
+        }
+    }
+
+    @ViewBuilder
+    private var shareButton: some View {
+        switch item.type {
+        case .text, .code:
+            if let text = item.text {
+                ShareLink(item: text) { actionLabel("square.and.arrow.up", help: L10n.shared.t("Share")) }
+                    .buttonStyle(.plain)
+            }
+        case .image:
+            if let url = HistoryStore.shared.imageFileURL(for: item) {
+                ShareLink(item: url) { actionLabel("square.and.arrow.up", help: L10n.shared.t("Share")) }
+                    .buttonStyle(.plain)
+            }
+        case .file:
+            if let path = item.fileURLPath {
+                ShareLink(item: URL(fileURLWithPath: path)) { actionLabel("square.and.arrow.up", help: L10n.shared.t("Share")) }
+                    .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func actionIcon(_ systemName: String, help: String, color: Color = .secondary, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            actionLabel(systemName, help: help).foregroundColor(color)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Material-backed so the icons stay readable over any thumbnail.
+    private func actionLabel(_ systemName: String, help: String) -> some View {
+        Image(systemName: systemName)
+            .font(.system(size: 10, weight: .medium))
+            .frame(width: 22, height: 22)
+            .background(Circle().fill(.regularMaterial))
+            .help(help)
+    }
+
+    private var typeIcon: String {
+        switch item.type {
+        case .text: return "doc.plaintext"
+        case .code: return "chevron.left.forwardslash.chevron.right"
+        case .image: return "photo"
+        case .file: return "doc"
+        }
+    }
+
+    private var typeColor: Color {
+        switch item.type {
+        case .text: return .blue
+        case .code: return .green
+        case .image: return .orange
+        case .file: return .purple
         }
     }
 }
