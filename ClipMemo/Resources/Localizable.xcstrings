@@ -1,8 +1,15 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {},
-    " " : {},
+    "" : {
+
+    },
+    " " : {
+
+    },
+    "{ }" : {
+
+    },
     "%@ · %@" : {
       "localizations" : {
         "en" : {
@@ -13,17 +20,17 @@
         }
       }
     },
-    "%lld" : {},
-    "30 Days" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30 天"
-          }
-        }
-      }
+    "%lld" : {
+
+    },
+    "⌘⇧T" : {
+
+    },
+    "⌘⇧V" : {
+
+    },
+    "⌘K" : {
+
     },
     "7 Days" : {
       "extractionState" : "stale",
@@ -32,6 +39,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "7 天"
+          }
+        }
+      }
+    },
+    "30 Days" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 天"
           }
         }
       }
@@ -47,16 +65,8 @@
         }
       }
     },
-    "API Key" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "API 密钥"
-          }
-        }
-      }
+    "Aa" : {
+
     },
     "Add Running App" : {
       "extractionState" : "stale",
@@ -80,17 +90,6 @@
         }
       }
     },
-    "All Items" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部项目"
-          }
-        }
-      }
-    },
     "All clipboard history will be removed. This cannot be undone." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -102,6 +101,17 @@
         }
       }
     },
+    "All Items" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部项目"
+          }
+        }
+      }
+    },
     "All records are stored locally on this Mac. Nothing is ever uploaded." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -109,6 +119,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有记录仅保存在本机，不会上传任何内容。"
+          }
+        }
+      }
+    },
+    "API Key" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API 密钥"
           }
         }
       }
@@ -125,6 +146,7 @@
       }
     },
     "Authorize…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -222,6 +244,17 @@
         }
       }
     },
+    "Clear all history" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清空全部历史"
+          }
+        }
+      }
+    },
     "Clear All History" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -240,6 +273,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清空全部历史？"
+          }
+        }
+      }
+    },
+    "Clear filter" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除筛选"
           }
         }
       }
@@ -266,31 +310,14 @@
         }
       }
     },
-    "Clear all history" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清空全部历史"
-          }
-        }
-      }
+    "ClipMemo" : {
+
     },
-    "Clear filter" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除筛选"
-          }
-        }
-      }
+    "ClipMemo 1.0" : {
+
     },
-    "ClipMemo" : {},
-    "ClipMemo 1.0" : {},
     "ClipMemo needs Accessibility to paste back into the app you were typing in." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -333,17 +360,6 @@
         }
       }
     },
-    "Convert Unix timestamps to readable dates." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unix 时间戳与日期互转。"
-          }
-        }
-      }
-    },
     "Convert between HEX, RGB, HSL and more." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -351,6 +367,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HEX / RGB / HSL 等格式互转。"
+          }
+        }
+      }
+    },
+    "Convert Unix timestamps to readable dates." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unix 时间戳与日期互转。"
           }
         }
       }
@@ -421,7 +448,9 @@
         }
       }
     },
-    "DeepL" : {},
+    "DeepL" : {
+
+    },
     "DeepL requires an API key." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -489,6 +518,7 @@
       }
     },
     "Enable Auto Paste" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -563,6 +593,9 @@
           }
         }
       }
+    },
+    "esc" : {
+
     },
     "Excel Spreadsheet" : {
       "extractionState" : "stale",
@@ -696,7 +729,9 @@
         }
       }
     },
-    "Google" : {},
+    "Google" : {
+
+    },
     "Google Translate by default, or DeepL." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -709,6 +744,7 @@
       }
     },
     "Grid View" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -747,6 +783,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "历史已清空"
+          }
+        }
+      }
+    },
+    "iCloud sync needs a build signed with the iCloud capability (paid Apple Developer team)." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此构建未包含 iCloud 能力（需付费开发者团队签名）。"
           }
         }
       }
@@ -862,6 +909,7 @@
       }
     },
     "List View" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1014,28 +1062,6 @@
         }
       }
     },
-    "PDF Document" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PDF 文档"
-          }
-        }
-      }
-    },
-    "PNG Image" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PNG 图片"
-          }
-        }
-      }
-    },
     "Paste" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1065,6 +1091,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已暂停"
+          }
+        }
+      }
+    },
+    "PDF Document" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF 文档"
           }
         }
       }
@@ -1102,6 +1139,17 @@
         }
       }
     },
+    "PNG Image" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PNG 图片"
+          }
+        }
+      }
+    },
     "Preview" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1113,17 +1161,6 @@
         }
       }
     },
-    "Previous 30 Days" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "近 30 天"
-          }
-        }
-      }
-    },
     "Previous 7 Days" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1131,6 +1168,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "近 7 天"
+          }
+        }
+      }
+    },
+    "Previous 30 Days" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "近 30 天"
           }
         }
       }
@@ -1455,6 +1503,7 @@
       }
     },
     "System Settings → Privacy & Security → Accessibility → turn on ClipMemo." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1464,7 +1513,9 @@
         }
       }
     },
-    "T" : {},
+    "T" : {
+
+    },
     "Text" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1472,6 +1523,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文本"
+          }
+        }
+      }
+    },
+    "Text · %d characters" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文本 · %d 个字符"
           }
         }
       }
@@ -1505,17 +1567,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要翻译的文本"
-          }
-        }
-      }
-    },
-    "Text · %d characters" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "文本 · %d 个字符"
           }
         }
       }
@@ -1685,17 +1736,6 @@
         }
       }
     },
-    "URL" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "URL"
-          }
-        }
-      }
-    },
     "Unicode" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1751,6 +1791,17 @@
         }
       }
     },
+    "URL" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL"
+          }
+        }
+      }
+    },
     "Use Q or H correction when adding a logo." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1783,22 +1834,7 @@
           }
         }
       }
-    },
-    "esc" : {},
-    "iCloud sync needs a build signed with the iCloud capability (paid Apple Developer team)." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此构建未包含 iCloud 能力（需付费开发者团队签名）。"
-          }
-        }
-      }
-    },
-    "⌘K" : {},
-    "⌘⇧T" : {},
-    "⌘⇧V" : {}
+    }
   },
   "version" : "1.0"
 }

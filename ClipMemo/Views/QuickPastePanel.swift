@@ -417,8 +417,8 @@ private struct QuickPasteView: View {
                         } else if quickLayout == "grid" {
                             // Grid tiles trade the text subtitle for a much
                             // larger image preview.
-                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8),
-                                                     count: 5), spacing: 8) {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12),
+                                                     count: 3), spacing: 12) {
                                 cells(items)
                             }
                         } else {
@@ -608,30 +608,26 @@ private struct QuickRow: View {
     }
 }
 
-/// Grid-layout tile: images get a real thumbnail area (the point of the grid),
-/// other types fall back to an enlarged colored glyph badge.
+/// Grid-layout tile shared visually with the main history grid: every item
+/// gets the same reading surface, metadata footer and selected treatment.
 private struct QuickGridCell: View {
     let item: ClipboardItem
     let isSelected: Bool
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
             content
-            Text(item.titleLine)
-                .font(.system(size: 9.5))
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            footer
         }
-        .padding(5)
-        .frame(maxWidth: .infinity)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(isSelected ? Color.blue.opacity(0.13) : .clear)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isSelected ? Color.blue.opacity(0.10) : Color.primary.opacity(0.025))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(isSelected ? Color.blue.opacity(0.5) : .clear, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(isSelected ? Color.blue.opacity(0.65) : Color.primary.opacity(0.06), lineWidth: 1)
         )
         .overlay(alignment: .topTrailing) {
             if item.isPinned {
@@ -651,26 +647,109 @@ private struct QuickGridCell: View {
             // image-driven sizing); the fill-scaled image only draws on top
             // and the clipShape crops it — otherwise a wide image makes the
             // tile overflow its grid track sideways.
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(Color.primary.opacity(0.05))
-                .frame(height: 66)
+                .frame(height: 118)
                 .frame(maxWidth: .infinity)
                 .overlay {
                     Image(nsImage: nsImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-        } else {
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        } else if item.type == .file {
             ZStack {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(badgeColor.opacity(0.12))
-                Image(systemName: iconName)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(badgeColor)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(badgeColor.opacity(0.08))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(badgeColor.opacity(0.16), lineWidth: 0.7)
+                    }
+                VStack(spacing: 7) {
+                    Image(systemName: iconName)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundStyle(badgeColor)
+                    Text(item.fileKind ?? L10n.shared.t("File"))
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
-            .frame(height: 66)
+            .frame(height: 118)
             .frame(maxWidth: .infinity)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 5) {
+                    Image(systemName: item.type == .code
+                          ? "chevron.left.forwardslash.chevron.right"
+                          : "text.alignleft")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(badgeColor)
+                    Text(L10n.shared.t(item.type == .code ? "Code" : "Text"))
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(item.type == .code ? "{ }" : "Aa")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(badgeColor.opacity(0.75))
+                }
+                Text(item.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? item.titleLine)
+                    .font(.system(size: item.type == .code ? 10.5 : 11.5,
+                                  design: item.type == .code ? .monospaced : .default))
+                    .foregroundStyle(.primary.opacity(0.86))
+                    .lineLimit(5)
+                    .lineSpacing(2)
+                    .truncationMode(.tail)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                Spacer(minLength: 0)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, minHeight: 118, maxHeight: 118, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(badgeColor.opacity(0.055))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(badgeColor.opacity(0.16), lineWidth: 0.7)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var footer: some View {
+        if item.type == .text || item.type == .code {
+            HStack(spacing: 4) {
+                Image(systemName: iconName)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(badgeColor)
+                if let source = item.sourceAppName, !source.isEmpty {
+                    Text(source)
+                        .lineLimit(1)
+                } else {
+                    Text(item.type == .code
+                         ? L10n.shared.t("Code")
+                         : L10n.shared.t("Text"))
+                }
+                Spacer(minLength: 3)
+                Text(item.formattedTime)
+                    .foregroundStyle(.tertiary)
+            }
+            .font(.system(size: 9))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            HStack(spacing: 4) {
+                Image(systemName: iconName)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(badgeColor)
+                Text(item.titleLine)
+                    .font(.system(size: 9.5))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

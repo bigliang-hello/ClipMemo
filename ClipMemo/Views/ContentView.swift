@@ -94,8 +94,8 @@ struct ContentView: View {
                         ForEach(filteredGroups, id: \.0) { section, sectionItems in
                             sectionHeader(section)
                             if mainLayout == "grid" {
-                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)],
-                                          spacing: 10) {
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 12)],
+                                          spacing: 12) {
                                     ForEach(sectionItems) { item in
                                         gridCell(for: item)
                                     }
@@ -331,7 +331,7 @@ private struct MainGridCell: View {
     @State private var hover = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             content
                 .overlay(alignment: .bottomTrailing) {
                     if hover {
@@ -341,15 +341,15 @@ private struct MainGridCell: View {
                 }
             footer
         }
-        .padding(8)
+        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isSelected ? Color.blue.opacity(0.08) : Color.primary.opacity(0.03))
+                .fill(isSelected ? Color.blue.opacity(0.10) : Color.primary.opacity(0.025))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(isSelected ? Color.blue.opacity(0.5) : .clear, lineWidth: 1)
+                .strokeBorder(isSelected ? Color.blue.opacity(0.65) : Color.primary.opacity(0.06), lineWidth: 1)
         )
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { onCopy() }
@@ -393,16 +393,16 @@ private struct MainGridCell: View {
             if let nsImage = ImageCache.image(for: item) {
                 // Shape-driven footprint with the image drawn on top and
                 // cropped — keeps wide images inside the grid track.
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.primary.opacity(0.05))
-                    .frame(height: 96)
+                    .frame(height: 118)
                     .frame(maxWidth: .infinity)
                     .overlay {
                         Image(nsImage: nsImage)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             } else {
                 typePlaceholder("photo", color: .gray)
             }
@@ -417,17 +417,39 @@ private struct MainGridCell: View {
 
     /// Multi-line text preview keeping every tile in a row the same height.
     private func snippet(monospaced: Bool) -> some View {
-        Text(item.text ?? item.titleLine)
-            .font(.system(size: monospaced ? 10.5 : 11.5,
-                          design: monospaced ? .monospaced : .default))
-            .lineLimit(4)
-            .truncationMode(.tail)
-            .frame(maxWidth: .infinity, minHeight: 96, maxHeight: 96, alignment: .topLeading)
-            .padding(6)
-            .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color.primary.opacity(0.04))
-            )
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 5) {
+                Image(systemName: monospaced ? "chevron.left.forwardslash.chevron.right" : "text.alignleft")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(typeColor)
+                Text(monospaced ? L10n.shared.t("Code") : L10n.shared.t("Text"))
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(monospaced ? "{ }" : "Aa")
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundStyle(typeColor.opacity(0.75))
+            }
+            Text(item.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? item.titleLine)
+                .font(.system(size: monospaced ? 10.5 : 11.5,
+                              design: monospaced ? .monospaced : .default))
+                .lineLimit(5)
+                .lineSpacing(2)
+                .truncationMode(.tail)
+                .foregroundStyle(.primary.opacity(0.86))
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 118, maxHeight: 118, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(typeColor.opacity(0.055))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(typeColor.opacity(0.16), lineWidth: 0.7)
+        )
     }
 
     private func typePlaceholder(_ symbol: String, color: Color) -> some View {
@@ -438,7 +460,7 @@ private struct MainGridCell: View {
                 .font(.system(size: 24, weight: .medium))
                 .foregroundStyle(color)
         }
-        .frame(height: 96)
+        .frame(height: 118)
         .frame(maxWidth: .infinity)
     }
 
@@ -447,7 +469,7 @@ private struct MainGridCell: View {
             Image(systemName: typeIcon)
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(typeColor)
-            Text(item.titleLine)
+            Text(footerTitle)
                 .font(.system(size: 10.5))
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -460,6 +482,15 @@ private struct MainGridCell: View {
             }
             .buttonStyle(.plain)
             .help(L10n.shared.t(item.isPinned ? "Unpin" : "Pin"))
+        }
+    }
+
+    private var footerTitle: String {
+        switch item.type {
+        case .image, .file:
+            return item.titleLine
+        case .text, .code:
+            return item.sourceAppName ?? (item.type == .code ? L10n.shared.t("Code") : L10n.shared.t("Text"))
         }
     }
 
