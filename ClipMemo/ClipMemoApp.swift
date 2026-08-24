@@ -16,6 +16,10 @@ enum WindowOpener {
     static var show: (() -> Void)?
 
     static func showMainWindow() {
+        // Come back to the Dock when a window is about to appear again.
+        if NSApp.activationPolicy() != .regular {
+            NSApp.setActivationPolicy(.regular)
+        }
         NSApp.activate(ignoringOtherApps: true)
         if let window = NSApp.windows.first(where: { $0.canBecomeMain && $0.isVisible }) {
             window.makeKeyAndOrderFront(nil)
@@ -57,6 +61,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Give a freshly (re)created window a moment to subscribe first.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 NotificationCenter.default.post(name: .showClipMemoToolbox, object: nil)
+            }
+        }
+
+        // Menu-bar-resident behavior: once the last real window closes, drop
+        // the Dock icon (accessory policy) and keep only the status-bar item.
+        // Showing a window again (WindowOpener) flips back to regular.
+        // Filter by canBecomeMain: NSStatusBarWindow (the menu-bar item) and
+        // the quick-paste NSPanel are always around and must not count.
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(windowWillClose(_:)),
+            name: NSWindow.willCloseNotification, object: nil)
+    }
+
+    @objc private func windowWillClose(_ note: Notification) {
+        guard let window = note.object as? NSWindow, !(window is NSPanel) else { return }
+        DispatchQueue.main.async {
+            let others = NSApp.windows.filter {
+                $0 !== window && $0.canBecomeMain && $0.isVisible
+            }
+            guard others.isEmpty, NSApp.activationPolicy() == .regular else { return }
+            // Switching policy while we're still the frontmost app is flaky —
+            // give the close/deactivation a beat to settle first.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                NSApp.setActivationPolicy(.accessory)
             }
         }
     }
