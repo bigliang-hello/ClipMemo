@@ -51,6 +51,10 @@
 
 ```bash
 ./Scripts/make-dmg.sh        # 产物:build/ClipMemo-<版本号>.dmg
+
+# 可选开关(详见脚本头部注释):
+ICLOUD=1 ./Scripts/make-dmg.sh    # 带 iCloud 同步能力(需付费开发者团队)
+NOTARIZE=1 ./Scripts/make-dmg.sh  # Developer ID 签名 + Apple 公证 + 装订
 ```
 
 打开 DMG,将 ClipMemo 拖入 Applications 即可。
