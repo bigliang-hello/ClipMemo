@@ -46,18 +46,15 @@ final class L10n: ObservableObject {
     /// Translates `key` in the currently selected language. Missing
     /// translations fall back to the key itself (English source).
     func t(_ key: String) -> String {
-        let code: String?
-        switch language {
-        case .system: code = nil
-        case .english: code = "en"
-        case .chinese: code = "zh-Hans"
+        // English is the catalog's source language — the keys ARE the English
+        // strings, and Xcode emits no en.lproj for it, so return the key.
+        guard language != .english else { return key }
+        guard language == .chinese,
+              let path = Bundle.main.path(forResource: "zh-Hans", ofType: "lproj"),
+              let bundle = Bundle(path: path) else {
+            // System mode: honor the OS language, falling back to the key.
+            return Bundle.main.localizedString(forKey: key, value: key, table: nil)
         }
-        if let code,
-           let path = Bundle.main.path(forResource: code, ofType: "lproj"),
-           let bundle = Bundle(path: path) {
-            return bundle.localizedString(forKey: key, value: key, table: nil)
-        }
-        // System mode: honor the OS language, falling back to the key.
-        return Bundle.main.localizedString(forKey: key, value: key, table: nil)
+        return bundle.localizedString(forKey: key, value: key, table: nil)
     }
 }
