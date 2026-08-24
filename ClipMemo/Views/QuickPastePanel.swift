@@ -45,6 +45,10 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
     private var panel: QuickPanel?
     private var previousApp: NSRunningApplication?
     private var permissionTimer: Timer?
+    private var scrollMonitor: Any?
+    private var wheelAccum: CGFloat = 0
+    /// True while the cursor is over the list itself — native scrolling wins.
+    var listHovered = false
 
     /// Rows shown in the palette (search over title/subtitle/body, newest first).
     var filteredItems: [ClipboardItem] {
@@ -69,7 +73,10 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
         previousApp = NSWorkspace.shared.frontmostApplication
         query = ""
         selectionIndex = 0
+        listHovered = false
+        wheelAccum = 0
         startPermissionPolling()
+        installScrollMonitor()
         position(p)
         p.orderFrontRegardless()
         p.makeKey()
@@ -81,6 +88,41 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
         panelVisible = false
         permissionTimer?.invalidate()
         permissionTimer = nil
+        if let scrollMonitor {
+            NSEvent.removeMonitor(scrollMonitor)
+            self.scrollMonitor = nil
+        }
+    }
+
+    /// macOS only scrolls the view under the cursor, so wheel events over the
+    /// banner/header/footer would go nowhere. Route them to the selection
+    /// instead (the list follows the selection), keeping native scrolling
+    /// whenever the cursor actually hovers the list.
+    private func installScrollMonitor() {
+        guard scrollMonitor == nil else { return }
+        scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            MainActor.assumeIsolated {
+                guard let self, self.panelVisible,
+                      let window = event.window, window === self.panel,
+                      !self.listHovered else { return event }
+                // Trackpad events carry a scroll phase, mouse wheels don't:
+                // deltas are points there, whole lines on a notched wheel.
+                // Normalize so one notch ≈ one row and a trackpad swipe of
+                // ~30pt advances one row.
+                let d = event.scrollingDeltaY
+                let isTrackpad = !event.phase.isEmpty || !event.momentumPhase.isEmpty
+                let lines = isTrackpad ? d / 30 : d
+                self.wheelAccum += lines
+                if self.wheelAccum.magnitude >= 1 {
+                    let steps = Int(self.wheelAccum)
+                    self.wheelAccum -= CGFloat(steps)
+                    // scroll up ⇢ previous row; clamp instead of wrapping so
+                    // the wheel stops at the ends like a normal list
+                    self.moveSelection(-steps, wraps: false)
+                }
+                return nil
+            }
+        }
     }
 
     /// While the panel is up, watch for the user granting Accessibility in
@@ -101,11 +143,26 @@ final class QuickPasteController: NSObject, ObservableObject, NSWindowDelegate {
         permissionTimer = timer
     }
 
-    func moveSelection(_ delta: Int) {
+    func moveSelection(_ delta: Int, wraps: Bool = true) {
         let count = filteredItems.count
         guard count > 0 else { return }
-        selectionIndex = ((selectionIndex + delta) % count + count) % count
+        if wraps {
+            selectionIndex = ((selectionIndex + delta) % count + count) % count
+        } else {
+            selectionIndex = min(max(selectionIndex + delta, 0), count - 1)
+        }
+        lockHoverBriefly()
     }
+
+    /// Rows re-target the selection on hover, and selection changes normally
+    /// scroll the hovered row to centre. Those two fight (scrolling sweeps
+    /// rows under a stationary cursor → hover fires → list scrolls again), so
+    /// hover-driven changes don't re-scroll, and keyboard/wheel moves lock
+    /// hover-following for a beat.
+    private var hoverLockUntil = Date.distantPast
+    var selectionFromHover = false
+    var selectionHoverEligible: Bool { Date() >= hoverLockUntil }
+    private func lockHoverBriefly() { hoverLockUntil = Date().addingTimeInterval(0.3) }
 
     /// Copy the selected row and paste it into the app that was frontmost.
     /// `openFullWindow` (⌘⏎) just opens the main window instead; `plainText`
@@ -340,17 +397,23 @@ private struct QuickPasteView: View {
                                     controller.confirmSelection()
                                 }
                                 .onHover { hover in
-                                    if hover { controller.selectionIndex = index }
+                                    guard hover, controller.selectionHoverEligible else { return }
+                                    controller.selectionFromHover = true
+                                    controller.selectionIndex = index
                                 }
                         }
                     }
                     .padding(6)
                 }
                 .onChange(of: controller.selectionIndex) { _, newIndex in
-                    if items.indices.contains(newIndex) {
-                        proxy.scrollTo(items[newIndex].id, anchor: .center)
-                    }
+                    // Hover-driven changes must not yank the scroll position:
+                    // the cursor is already where the user put it.
+                    let fromHover = controller.selectionFromHover
+                    controller.selectionFromHover = false
+                    guard !fromHover, items.indices.contains(newIndex) else { return }
+                    proxy.scrollTo(items[newIndex].id, anchor: .center)
                 }
+                .onHover { controller.listHovered = $0 }
             }
 
             Divider()
